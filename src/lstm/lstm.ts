@@ -58,6 +58,8 @@ export type KecamatanRow = {
   prediksi: number;
   confidence: number;
   trend: "naik" | "stabil" | "turun";
+  timestamp?: number;
+  luasHa?: number;
   luasHa: number;
   /** Rolling 12-month predictions for chart */
   predictions12?: { bulan: string; ton: number }[];

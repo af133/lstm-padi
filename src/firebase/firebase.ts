@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp, doc, setDoc, getDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp, doc, setDoc, getDoc, deleteDoc, deleteField, writeBatch } from "firebase/firestore";
 
 const env: any = (import.meta as any).env || {};
 
@@ -19,7 +19,7 @@ export const db = getFirestore(fbApp);
 // Save specific Kecamatan features by its code (document ID)
 export async function saveKecamatanFeatures(kode: string, features: Record<string, number>) {
   const docRef = doc(db, "kecamatan_features", kode);
-  await setDoc(docRef, { features, updatedAt: serverTimestamp() });
+  await setDoc(docRef, { features, updatedAt: serverTimestamp(), timestamp: Date.now() });
 }
 
 // Fetch all Kecamatan customized features from Firestore
@@ -35,5 +35,21 @@ export async function fetchKecamatanFeatures(): Promise<Record<string, Record<st
   return data;
 }
 
+// Delete specific kecamatan data
+export async function deleteKecamatanFeatures(kode: string) {
+  const docRef = doc(db, "kecamatan_features", kode);
+  await deleteDoc(docRef);
+}
+
+// Delete all kecamatan data
+export async function deleteAllKecamatanFeatures() {
+  const snap = await getDocs(collection(db, "kecamatan_features"));
+  const batch = writeBatch(db);
+  snap.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+  await batch.commit();
+}
+
 // Export Firestore functions for use in application logic
-export { collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp, doc, setDoc, getDoc };
+export { collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp, doc, setDoc, getDoc, deleteDoc, writeBatch };

@@ -13,9 +13,13 @@ import {
 import { useLstmModel } from "./lstm/useLstmModel";
 import { useBmkgFirestore } from "./firebase/useBmkgFirestore";
 import { fetchKecamatanFeatures } from "./firebase/firebase";
+import { getLatestDataPerKecamatan } from "./utils/adminUtils";
 import { AuthModal } from "./components/AuthModal";
 import { PredictionChart } from "./components/PredictionChart";
 import { AdminDashboard } from "./components/AdminDashboard";
+import { Navigation } from "./components/Navigation";
+import { HomePage } from "./components/HomePage";
+import { Footer } from "./components/Footer";
 
 type KecamatanFeatureProps = {
   NAMOBJ: string;
@@ -134,7 +138,7 @@ export default function App() {
   const mapRef = useRef<L.Map | null>(null);
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
 
-  const [currentPage, setCurrentPage] = useState<"guest" | "admin">("guest");
+  const [currentPage, setCurrentPage] = useState<"home" | "peta" | "admin" | "guest">("home");
 
   const selectedRow = rows.find(r => r.kode === selectedKode) || rows[0];
 
@@ -167,7 +171,7 @@ export default function App() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem("sipanen_admin_auth");
-    setCurrentPage("guest");
+    setCurrentPage("home");
   };
 
   useEffect(() => {
@@ -356,73 +360,68 @@ export default function App() {
     }
   };
 
-  if (currentPage === "admin" && isAuthenticated) {
+  // Home Page
+  if (currentPage === "home") {
     return (
-      <AdminDashboard
-        rows={rows}
-        setRows={setRows}
-        syncing={syncing}
-        lastSync={lastSync}
-        weatherLog={weatherLog}
-        dbError={dbError}
-        syncBmkgToFirestore={syncBmkgToFirestore}
-        runPrediction={runPrediction}
-        onBack={() => setCurrentPage("guest")}
-        onLogout={handleLogout}
-      />
+      <div className="min-h-screen bg-white">
+        <Navigation
+          currentPage={currentPage}
+          onNavigate={(page) => setCurrentPage(page as any)}
+          isAuthenticated={isAuthenticated}
+          onAuthModalOpen={() => setIsAuthModalOpen(true)}
+          onLogout={handleLogout}
+        />
+        <HomePage
+          onNavigate={(page) => setCurrentPage(page as any)}
+          onAuthModalOpen={() => setIsAuthModalOpen(true)}
+        />
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </div>
     );
   }
 
+  // Admin Dashboard
+  if (currentPage === "admin" && isAuthenticated) {
+    return (
+      <div className="min-h-screen">
+        <Navigation
+          currentPage={currentPage}
+          onNavigate={(page) => setCurrentPage(page as any)}
+          isAuthenticated={isAuthenticated}
+          onAuthModalOpen={() => setIsAuthModalOpen(true)}
+          onLogout={handleLogout}
+        />
+        <AdminDashboard
+          rows={rows}
+          setRows={setRows}
+          syncing={syncing}
+          lastSync={lastSync}
+          weatherLog={weatherLog}
+          dbError={dbError}
+          syncBmkgToFirestore={syncBmkgToFirestore}
+          runPrediction={runPrediction}
+          onBack={() => setCurrentPage("home")}
+          onLogout={handleLogout}
+        />
+      </div>
+    );
+  }
+
+  // Map Page (Peta)
   return (
     <div className="min-h-screen text-[#1E293B]" style={{ background: "linear-gradient(160deg, #F0FDF4 0%, #F6FEF9 35%, #F0F9FF 100%)", fontFamily: "'Inter', ui-sans-serif, system-ui" }}>
-      <header className="sticky top-0 z-[900] backdrop-blur bg-[#F6FEF9]/90 border-b border-[#F59E0B]/25">
-        <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 pt-4 flex flex-wrap items-center gap-4 justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="relative w-12 h-12 shrink-0">
-              <div className="absolute inset-0 rounded-[14px] bg-gradient-to-br from-[#22C55E] to-[#15803D] shadow-[0_3px_10px_rgba(34,67,46,0.28)] rotate-[-4deg]" />
-              <div className="absolute inset-0 rounded-[14px] flex items-center justify-center text-[#F6FEF9]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 17 }}>SJ</div>
-            </div>
-            <div>
-              <div className="text-[19px] tracking-tight text-[#15803D]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700 }}>
-                SiPanen <span className="text-[#F59E0B]">·</span> Jember Harvest AI
-              </div>
-              <div className="text-[11.5px] text-[#475569] -mt-0.5">Dashboard prediksi panen per Kecamatan — Kabupaten Jember, Jawa Timur</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 text-[12px]">
-            <span
-              className="px-2.5 py-1 rounded-full border font-medium"
-              style={
-                modelStatus === "ready"
-                  ? { background: "#DCFCE7", borderColor: "#BBF7D0", color: "#15803D" }
-                  : modelStatus === "fallback"
-                  ? { background: "#FEF3C7", borderColor: "#FDE68A", color: "#6B5410" }
-                  : { background: "#EFEBDD", borderColor: "#BBF7D0", color: "#475569" }
-              }
-            >
-              Model: {modelStatus === "ready" ? "TensorFlow.js ✔" : modelStatus === "fallback" ? "Heuristik" : "memuat…"}
-            </span>
-            {isAuthenticated ? (
-              <button
-                onClick={() => setCurrentPage("admin")}
-                className="px-3.5 py-2 rounded-xl bg-[#0EA5E9] hover:bg-[#0284C7] text-white text-[12.5px] font-semibold shadow-sm transition-all"
-              >
-                Dashboard Admin
-              </button>
-            ) : (
-              <button
-                onClick={() => setIsAuthModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl border border-[#22C55E] bg-[#DCFCE7] hover:bg-[#E2ECDD] text-[#15803D] text-[12.5px] font-semibold transition-all"
-              >
-                Login Admin
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 mt-2">
-          <ContourDivider />
-        </div>
-      </header>
+      <Navigation
+        currentPage={currentPage}
+        onNavigate={(page) => setCurrentPage(page as any)}
+        isAuthenticated={isAuthenticated}
+        onAuthModalOpen={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
+      />
+      <header className="hidden"></header>
 
       {dbError && (
         <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 mt-4 animate-fade-in">
@@ -459,7 +458,7 @@ export default function App() {
             <div className="text-[13px] text-[#0EA5E9] font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{totals.top ? totals.top.prediksi.toLocaleString("id-ID") + " ton" : "-"}</div>
           </div>
           <div className="rounded-[20px] border border-[#BAE6FD] p-4 shadow-[0_1px_2px_rgba(45,42,31,0.04)] bg-gradient-to-br from-[#E0F2FE] to-[#ECFDF5]">
-            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#0369A1] font-semibold">Cuaca Jember (BMKG)</div>
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#0369A1] font-semibold">Cuaca {selectedRow?.nama || "Kecamatan"} (BMKG)</div>
             <div className="text-[14px] mt-1 text-[#0284C7] font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
               {selectedRow ? `${selectedRow.features.suhu_rata2_c?.toFixed(1) ?? "-"}°C · ${Math.round(selectedRow.features.kelembaban_persen) ?? "-"}% RH` : "-"}
             </div>
@@ -540,6 +539,21 @@ export default function App() {
                       {selectedStatusMeta.label}
                     </div>
                   </div>
+                  {selectedStatus === "kritis" && (
+                    <div className="mt-3 rounded-lg border border-[#FCA5A5] bg-[#FEE2E2] px-3 py-2 text-[11.5px] text-[#9F1239] font-semibold">
+                      ⚠️ Prioritas utama mendapatkan pupuk
+                    </div>
+                  )}
+                  {selectedStatus === "waspada" && (
+                    <div className="mt-3 rounded-lg border border-[#FCD34D] bg-[#FFFACD] px-3 py-2 text-[11.5px] text-[#854D0E] font-semibold">
+                      ⚡ Segera mendapatkan pupuk
+                    </div>
+                  )}
+                  {selectedStatus === "aman" && (
+                    <div className="mt-3 rounded-lg border border-[#BBEF86] bg-[#ECFDF5] px-3 py-2 text-[11.5px] text-[#166534] font-semibold">
+                      ✓ Kurang prioritas untuk pupuk
+                    </div>
+                  )}
                   {selectedLayerInfo && (
                     <div className="mt-3 rounded-2xl border border-[#E3F6E8] bg-[#F0FDF4] px-3 py-2 text-[11.5px] text-[#334155]">
                       <div className="font-semibold text-[#1E293B]">Layer diklik: {selectedLayerInfo.namaWilayah}</div>
@@ -606,10 +620,9 @@ export default function App() {
           />
         </section>
 
-        <footer className="text-[11px] text-[#64748B] text-center pb-6" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-          SiPanen Jember • Deep Learning (TensorFlow.js) • 16 input features • BMKG → Firestore auto-sync 3 jam • © 2026 Dinas Pertanian Jember – demo AI
-        </footer>
       </main>
+
+      <Footer />
 
       <AuthModal
         isOpen={isAuthModalOpen}
