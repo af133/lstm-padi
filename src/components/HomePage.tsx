@@ -48,14 +48,18 @@ export function HomePage({ onNavigate, onAuthModalOpen }: HomePageProps) {
               </button>
             </div>
 
-            {/* Hero Image */}
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              <img
-                src="/hero-rice-field.png"
-                alt="Lahan padi subur di Jember"
-                className="w-full h-auto object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+            {/* Hero Image - Background with auto-scroll */}
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl h-96 mt-12 bg-cover bg-center" style={{ backgroundImage: "url('/hero-rice-field.png')" }}>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent animate-subtle-zoom" />
+              <style>{`
+                @keyframes subtle-zoom {
+                  0%, 100% { transform: scale(1) translateY(0); }
+                  50% { transform: scale(1.05) translateY(-15px); }
+                }
+                .animate-subtle-zoom {
+                  animation: subtle-zoom 8s ease-in-out infinite;
+                }
+              `}</style>
             </div>
           </div>
         </div>
@@ -176,7 +180,6 @@ export function HomePage({ onNavigate, onAuthModalOpen }: HomePageProps) {
                   "Pemodelan LSTM multivariat untuk time-series jangka panjang",
                   "Dashboard Web-GIS interaktif dengan visualisasi real-time",
                   "Rekomendasi distribusi pupuk berbasis prediksi hasil panen",
-                  "Validasi mendalam bersama pakar pertanian dan pemerintah daerah",
                 ].map((item, idx) => (
                   <li key={idx} className="flex gap-3 items-start">
                     <Shield className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-1" />

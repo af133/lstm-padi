@@ -18,6 +18,7 @@ import { PredictionChart } from "./components/PredictionChart";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { Navigation } from "./components/Navigation";
 import { HomePage } from "./components/HomePage";
+import { Footer } from "./components/Footer";
 
 type KecamatanFeatureProps = {
   NAMOBJ: string;
@@ -456,7 +457,7 @@ export default function App() {
             <div className="text-[13px] text-[#0EA5E9] font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{totals.top ? totals.top.prediksi.toLocaleString("id-ID") + " ton" : "-"}</div>
           </div>
           <div className="rounded-[20px] border border-[#BAE6FD] p-4 shadow-[0_1px_2px_rgba(45,42,31,0.04)] bg-gradient-to-br from-[#E0F2FE] to-[#ECFDF5]">
-            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#0369A1] font-semibold">Cuaca Jember (BMKG)</div>
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#0369A1] font-semibold">Cuaca {selectedRow?.nama || "Kecamatan"} (BMKG)</div>
             <div className="text-[14px] mt-1 text-[#0284C7] font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
               {selectedRow ? `${selectedRow.features.suhu_rata2_c?.toFixed(1) ?? "-"}°C · ${Math.round(selectedRow.features.kelembaban_persen) ?? "-"}% RH` : "-"}
             </div>
@@ -537,6 +538,21 @@ export default function App() {
                       {selectedStatusMeta.label}
                     </div>
                   </div>
+                  {selectedStatus === "kritis" && (
+                    <div className="mt-3 rounded-lg border border-[#FCA5A5] bg-[#FEE2E2] px-3 py-2 text-[11.5px] text-[#9F1239] font-semibold">
+                      ⚠️ Prioritas utama mendapatkan pupuk
+                    </div>
+                  )}
+                  {selectedStatus === "waspada" && (
+                    <div className="mt-3 rounded-lg border border-[#FCD34D] bg-[#FFFACD] px-3 py-2 text-[11.5px] text-[#854D0E] font-semibold">
+                      ⚡ Segera mendapatkan pupuk
+                    </div>
+                  )}
+                  {selectedStatus === "aman" && (
+                    <div className="mt-3 rounded-lg border border-[#BBEF86] bg-[#ECFDF5] px-3 py-2 text-[11.5px] text-[#166534] font-semibold">
+                      ✓ Kurang prioritas untuk pupuk
+                    </div>
+                  )}
                   {selectedLayerInfo && (
                     <div className="mt-3 rounded-2xl border border-[#E3F6E8] bg-[#F0FDF4] px-3 py-2 text-[11.5px] text-[#334155]">
                       <div className="font-semibold text-[#1E293B]">Layer diklik: {selectedLayerInfo.namaWilayah}</div>
@@ -603,10 +619,9 @@ export default function App() {
           />
         </section>
 
-        <footer className="text-[11px] text-[#64748B] text-center pb-6" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-          SiPanen Jember • Deep Learning (TensorFlow.js) • 16 input features • BMKG → Firestore auto-sync 3 jam • © 2026 Dinas Pertanian Jember – demo AI
-        </footer>
       </main>
+
+      <Footer />
 
       <AuthModal
         isOpen={isAuthModalOpen}
