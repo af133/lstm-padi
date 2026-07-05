@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp, doc, setDoc, getDoc } from "firebase/firestore";
 
 const env: any = (import.meta as any).env || {};
 
@@ -16,5 +16,24 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 export const db = getFirestore(fbApp);
 
+// Save specific Kecamatan features by its code (document ID)
+export async function saveKecamatanFeatures(kode: string, features: Record<string, number>) {
+  const docRef = doc(db, "kecamatan_features", kode);
+  await setDoc(docRef, { features, updatedAt: serverTimestamp() });
+}
+
+// Fetch all Kecamatan customized features from Firestore
+export async function fetchKecamatanFeatures(): Promise<Record<string, Record<string, number>>> {
+  const q = query(collection(db, "kecamatan_features"));
+  const snap = await getDocs(q);
+  const data: Record<string, Record<string, number>> = {};
+  snap.forEach((doc) => {
+    if (doc.data().features) {
+      data[doc.id] = doc.data().features;
+    }
+  });
+  return data;
+}
+
 // Export Firestore functions for use in application logic
-export { collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp };
+export { collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp, doc, setDoc, getDoc };

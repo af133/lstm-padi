@@ -4,18 +4,19 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { KecamatanList, GEOJSONKodeKecamatan } from "./dataKecamatan/KecamatanList";
 import {
-  ModelInputMode,
   FeatureName,
   KecamatanRow,
   KANDIDAT_FEATURES,
-  LSTM_TIMESTEP_FEATURES,
   makeInitialFeatures,
   heuristicPredict
 } from "./lstm/lstm";
 import { useLstmModel } from "./lstm/useLstmModel";
 import { useBmkgFirestore } from "./firebase/useBmkgFirestore";
+import { fetchKecamatanFeatures } from "./firebase/firebase";
+import { AuthModal } from "./components/AuthModal";
+import { PredictionChart } from "./components/PredictionChart";
+import { AdminDashboard } from "./components/AdminDashboard";
 
-// ----- Types -----
 type KecamatanFeatureProps = {
   NAMOBJ: string;
   WADMKC: string;
@@ -28,7 +29,6 @@ type KecamatanFeatureProps = {
 type AdministrativeProps = Partial<KecamatanFeatureProps> & Record<string, any>;
 type KecamatanFC = GeoJSON.FeatureCollection<any, AdministrativeProps>;
 type HarvestStatus = "aman" | "waspada" | "kritis";
-
 
 const STATUS_META: Record<HarvestStatus, { label: string; color: string; stroke: string; bg: string; text: string; desc: string }> = {
   aman: {
@@ -57,14 +57,10 @@ const STATUS_META: Record<HarvestStatus, { label: string; color: string; stroke:
   }
 };
 
-
-
-
 const KEC_NAME_TO_CODE = Object.fromEntries(
   KecamatanList.map((k) => [k.nama.toUpperCase().replace(/\s+/g, " ").trim(), k.kode])
 );
 const KEC_CODE_SET = new Set(KecamatanList.map((k) => k.kode));
-
 
 function normalizeRegionName(value?: string) {
   return (value || "").toUpperCase().replace(/\s+/g, " ").trim();
@@ -106,10 +102,6 @@ function centroidFromGeometry(geometry?: any) {
   return { lon: sum.lng / coords.length, lat: sum.lat / coords.length };
 }
 
-
-
-
-
 export default function App() {
   const [geo, setGeo] = useState<KecamatanFC | null>(null);
   const [rows, setRows] = useState<KecamatanRow[]>([]);
@@ -122,8 +114,14 @@ export default function App() {
     kodeWilayah: string;
     sumber: string;
   } | null>(null);
-  const mapRef = useRef<L.Map|null>(null);
+  const mapRef = useRef<L.Map | null>(null);
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
+
+  // Current view: "guest" or "admin"
+  const [currentPage, setCurrentPage] = useState<"guest" | "admin">("guest");
+
+  // Derived state for the currently selected Kecamatan
+  const selectedRow = rows.find(r => r.kode === selectedKode) || rows[0];
 
   // Custom hooks for LSTM model loading and weather synchronization
   const {
@@ -137,8 +135,27 @@ export default function App() {
     syncing,
     lastSync,
     weatherLog,
+    dbError,
     syncBmkgToFirestore
   } = useBmkgFirestore(setRows, runPrediction);
+
+  // Authentication states
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem("sipanen_admin_auth") === "true";
+  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    localStorage.setItem("sipanen_admin_auth", "true");
+    setCurrentPage("admin");
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem("sipanen_admin_auth");
+    setCurrentPage("guest");
+  };
 
   // load geojson
   useEffect(() => {
@@ -159,7 +176,7 @@ export default function App() {
         } catch {}
       }
       if (!cancelled) {
-        setGeo({ type:"FeatureCollection", features: [] });
+        setGeo({ type: "FeatureCollection", features: [] });
         setGeoSource("tidak ada GeoJSON valid");
       }
     };
@@ -167,43 +184,54 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-
-
-  // init rows
+  // init rows with Firestore features if available
   useEffect(() => {
     if (!geo) return;
-    const centroidBucket: Record<string, {lat:number, lon:number, count:number}> = {};
-    geo.features.forEach((f) => {
-      const code = resolveKecamatanCode(f.properties);
-      const centroid = centroidFromGeometry(f.geometry);
-      if (!code || !centroid) return;
-      if (!centroidBucket[code]) centroidBucket[code] = { lat: 0, lon: 0, count: 0 };
-      centroidBucket[code].lat += centroid.lat;
-      centroidBucket[code].lon += centroid.lon;
-      centroidBucket[code].count += 1;
-    });
-    const featureIndex: Record<string, {lat:number, lon:number}> = {};
-    Object.entries(centroidBucket).forEach(([code, value]) => {
-      featureIndex[code] = { lat: value.lat / value.count, lon: value.lon / value.count };
-    });
-    const init: KecamatanRow[] = KecamatanList.map((k, idx) => {
-      const pos = featureIndex[k.kode] || { lat: -8.18 + (idx%6)*0.07, lon: 113.65 + Math.floor(idx/6)*0.08 };
-      const feats = makeInitialFeatures(k.nama, idx);
-      const predH = heuristicPredict(feats);
-      return {
-        kode: k.kode,
-        nama: k.nama,
-        kecamatan: k.nama,
-        lat: pos.lat,
-        lon: pos.lon,
-        features: feats,
-        prediksi: predH,
-        confidence: 0.82 + (idx%7)*0.022,
-        trend: (idx%3===0 ? "naik" : idx%3===1 ? "stabil" : "turun") as any,
-        luasHa: feats["luas tanam"],
-      };
-    });
-    setRows(init);
+    const initializeRows = async () => {
+      let firestoreFeats: Record<string, Record<string, number>> = {};
+      try {
+        firestoreFeats = await fetchKecamatanFeatures();
+      } catch (err) {
+        console.warn("Could not fetch features from Firestore (running offline/fallback):", err);
+      }
+
+      const centroidBucket: Record<string, { lat: number, lon: number, count: number }> = {};
+      geo.features.forEach((f) => {
+        const code = resolveKecamatanCode(f.properties);
+        const centroid = centroidFromGeometry(f.geometry);
+        if (!code || !centroid) return;
+        if (!centroidBucket[code]) centroidBucket[code] = { lat: 0, lon: 0, count: 0 };
+        centroidBucket[code].lat += centroid.lat;
+        centroidBucket[code].lon += centroid.lon;
+        centroidBucket[code].count += 1;
+      });
+      const featureIndex: Record<string, { lat: number, lon: number }> = {};
+      Object.entries(centroidBucket).forEach(([code, value]) => {
+        featureIndex[code] = { lat: value.lat / value.count, lon: value.lon / value.count };
+      });
+
+      const init: KecamatanRow[] = KecamatanList.map((k, idx) => {
+        const pos = featureIndex[k.kode] || { lat: -8.18 + (idx % 6) * 0.07, lon: 113.65 + Math.floor(idx / 6) * 0.08 };
+        const feats = firestoreFeats[k.kode] || makeInitialFeatures(k.nama, idx);
+        const predH = heuristicPredict(feats);
+        return {
+          kode: k.kode,
+          nama: k.nama,
+          kecamatan: k.nama,
+          lat: pos.lat,
+          lon: pos.lon,
+          features: feats,
+          prediksi: predH,
+          confidence: 0.82 + (idx % 7) * 0.022,
+          trend: (idx % 3 === 0 ? "naik" : idx % 3 === 1 ? "stabil" : "turun") as any,
+          luasHa: feats["luas tanam"],
+          predictions12: []
+        };
+      });
+      setRows(init);
+    };
+
+    initializeRows();
   }, [geo]);
 
   const filteredRows = useMemo(() => {
@@ -212,14 +240,10 @@ export default function App() {
     return rows.filter(r => r.nama.toLowerCase().includes(s) || r.kode.includes(s));
   }, [rows, search]);
 
-  const selectedRow = rows.find(r=>r.kode===selectedKode) || rows[0];
-
-
-
-  const totals = useMemo(()=>{
-    const tot = rows.reduce((s,r)=>s+r.prediksi,0);
-    const avg = rows.length ? tot/rows.length : 0;
-    const top = [...rows].sort((a,b)=>b.prediksi-a.prediksi)[0];
+  const totals = useMemo(() => {
+    const tot = rows.reduce((s, r) => s + r.prediksi, 0);
+    const avg = rows.length ? tot / rows.length : 0;
+    const top = [...rows].sort((a, b) => b.prediksi - a.prediksi)[0];
     return { tot, avg, top };
   }, [rows]);
 
@@ -235,8 +259,8 @@ export default function App() {
   const getRowStatus = (row?: KecamatanRow): HarvestStatus => {
     if (!row) return "waspada";
     const prod = row.prediksi / Math.max(1, row.luasHa);
-    const severeWeather = row.features.temp > 32 || row.features.humidity > 90 || row.features.windspeed > 10;
-    const moderateWeather = row.features.temp > 30.5 || row.features.humidity > 86 || row.features.windspeed > 8;
+    const severeWeather = row.features.suhu_rata2_c > 32 || row.features.kelembaban_persen > 90;
+    const moderateWeather = row.features.suhu_rata2_c > 30.5 || row.features.kelembaban_persen > 86;
     if (prod <= productivityBreaks.critical || severeWeather) return "kritis";
     if (prod <= productivityBreaks.warning || moderateWeather || row.trend === "turun") return "waspada";
     return "aman";
@@ -260,23 +284,23 @@ export default function App() {
 
   const geoStyle = (feature?: GeoJSON.Feature<any, AdministrativeProps>) => {
     const code = resolveKecamatanCode(feature?.properties);
-    const row = rows.find(r=>r.kode===code);
+    const row = rows.find(r => r.kode === code);
     const status = getRowStatus(row);
     const meta = STATUS_META[status];
     return {
       fillColor: row ? meta.color : "#cbd5e1",
-      weight: selectedKode===code ? 3 : 1.15,
+      weight: selectedKode === code ? 3 : 1.15,
       opacity: 1,
-      color: selectedKode===code ? "#0f172a" : row ? meta.stroke : "#94a3b8",
-      dashArray: selectedKode===code ? "" : "2 2",
-      fillOpacity: selectedKode===code ? 0.86 : 0.72,
+      color: selectedKode === code ? "#0f172a" : row ? meta.stroke : "#94a3b8",
+      dashArray: selectedKode === code ? "" : "2 2",
+      fillOpacity: selectedKode === code ? 0.86 : 0.72,
     };
   };
 
   const onEachFeature = (feature: GeoJSON.Feature<any, AdministrativeProps>, layer: L.Layer) => {
     const props = feature.properties || {};
     const code = resolveKecamatanCode(props);
-    const row = rows.find(r=>r.kode===code);
+    const row = rows.find(r => r.kode === code);
     const status = getRowStatus(row);
     const meta = STATUS_META[status];
     const namaWilayah = String(props.NAMOBJ || row?.nama || "Wilayah administrasi");
@@ -290,7 +314,7 @@ export default function App() {
         (layer as any).openPopup?.();
       },
       mouseover: (e: any) => { e.target.setStyle({ weight: 2.2, fillOpacity: 0.93 }); },
-      mouseout: (e:any) => { geoJsonRef.current?.resetStyle(e.target); }
+      mouseout: (e: any) => { geoJsonRef.current?.resetStyle(e.target); }
     });
     if (row) {
       layer.bindPopup(
@@ -303,11 +327,10 @@ export default function App() {
           </div>
           <div style="margin-top:10px;font-size:12px;line-height:1.55;color:#334155;">
             Prediksi: <b>${row.prediksi.toLocaleString("id-ID")} ton</b><br/>
-            Produktivitas: <b>${(row.prediksi / Math.max(1,row.luasHa)).toFixed(2)} ton/ha</b><br/>
+            Produktivitas: <b>${(row.prediksi / Math.max(1, row.luasHa)).toFixed(2)} ton/ha</b><br/>
             Luas tanam: ${row.luasHa} ha<br/>
-            Cuaca: ${row.features.temp.toFixed(1)}°C, RH ${Math.round(row.features.humidity)}%, angin ${row.features.windspeed.toFixed(1)} km/j
+            Cuaca: ${row.features.suhu_rata2_c?.toFixed(1) ?? "-"}°C, RH ${Math.round(row.features.kelembaban_persen) ?? "-"}%
           </div>
-          <div style="font-size:11px;color:#64748b;margin-top:8px;">${meta.desc}</div>
         </div>`
       );
       layer.bindTooltip(
@@ -316,11 +339,29 @@ export default function App() {
           Kecamatan: ${row.nama}<br/>
           Status: <b style="color:${meta.stroke}">${meta.label}</b><br/>
           Prediksi: <b>${row.prediksi.toLocaleString("id-ID")} ton</b><br/>
-          T: ${row.features.temp.toFixed(1)}°C · RH ${Math.round(row.features.humidity)}%
+          T: ${row.features.suhu_rata2_c?.toFixed(1) ?? "-"}°C
         </div>`, { sticky: true }
       );
     }
   };
+
+  // Render Admin Dashboard if Admin page is active and authenticated
+  if (currentPage === "admin" && isAuthenticated) {
+    return (
+      <AdminDashboard
+        rows={rows}
+        setRows={setRows}
+        syncing={syncing}
+        lastSync={lastSync}
+        weatherLog={weatherLog}
+        dbError={dbError}
+        syncBmkgToFirestore={syncBmkgToFirestore}
+        runPrediction={runPrediction}
+        onBack={() => setCurrentPage("guest")}
+        onLogout={handleLogout}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f6f8f4] text-slate-800">
@@ -334,45 +375,68 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-3 text-[12px]">
-            <span className={`px-2.5 py-1 rounded-full border ${modelStatus==="ready" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : modelStatus==="fallback" ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-slate-100 border-slate-200 text-slate-500"}`}>
-              Model: {modelStatus==="ready" ? "TensorFlow.js ✔" : modelStatus==="fallback" ? "Heuristik" : "memuat…"}
+            <span className={`px-2.5 py-1 rounded-full border ${modelStatus === "ready" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : modelStatus === "fallback" ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-slate-100 border-slate-200 text-slate-500"}`}>
+              Model: {modelStatus === "ready" ? "TensorFlow.js ✔" : modelStatus === "fallback" ? "Heuristik" : "memuat…"}
             </span>
             <span className="text-slate-500 hidden md:inline">
-              {modelInputMode === "sequence_3x12" ? "LSTM 3x12" : "Flat 16"} • shape {loadedModelShape} • Firestore Live
+              {modelInputMode === "sequence_3x16" ? "LSTM 3x16" : "Flat 16"} • shape {loadedModelShape} • Firestore Live
             </span>
-            <button
-              onClick={()=>runPrediction()}
-              className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[12.5px] font-semibold shadow-sm"
-            >Re-predict all</button>
+            {isAuthenticated ? (
+              <button
+                onClick={() => setCurrentPage("admin")}
+                className="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-[12.5px] font-semibold shadow-sm transition-all"
+              >
+                Dashboard Admin
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl border border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[12.5px] font-semibold transition-all"
+              >
+                Login Admin
+              </button>
+            )}
           </div>
         </div>
       </header>
+
+      {dbError && (
+        <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 mt-4 animate-fade-in">
+          <div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-2xl text-[12.5px] font-medium flex items-start gap-2.5 shadow-sm">
+            <span className="text-[15px] pt-0.5">⚠️</span>
+            <div>
+              <span className="font-semibold">Kesalahan Koneksi Firestore:</span> {dbError}.<br />
+              Aplikasi berjalan dalam mode offline/fallback lokal. Untuk menyinkronkan data cuaca BMKG dan menyimpan input fitur ke database, pastikan Anda telah membuat database Firestore bernama <code>(default)</code> di Firebase Console.
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 py-7 space-y-7">
         {/* KPI */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="rounded-[22px] border border-emerald-900/10 bg-white p-4 shadow-sm">
             <div className="text-[11px] uppercase tracking-wider text-emerald-700/80">Total Prediksi Kabupaten</div>
-            <div className="text-[28px] font-[800] text-emerald-950 mt-1">{totals.tot.toLocaleString("id-ID",{maximumFractionDigits:0})} <span className="text-[15px] font-[600] text-emerald-700">ton</span></div>
-            <div className="text-[11.5px] text-slate-500 mt-1">31 kecamatan • {new Date().toLocaleDateString("id-ID", { month:"long", year:"numeric"})}</div>
+            <div className="text-[28px] font-[800] text-emerald-950 mt-1">{totals.tot.toLocaleString("id-ID", { maximumFractionDigits: 0 })} <span className="text-[15px] font-[600] text-emerald-700">ton</span></div>
+            <div className="text-[11.5px] text-slate-500 mt-1">31 kecamatan • {new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</div>
           </div>
           <div className="rounded-[22px] border border-emerald-900/10 bg-white p-4 shadow-sm">
             <div className="text-[11px] uppercase tracking-wider text-emerald-700/80">Rata-rata / Kecamatan</div>
             <div className="text-[28px] font-[800] text-emerald-950 mt-1">{totals.avg.toFixed(0)} <span className="text-[15px] font-[600] text-emerald-700">ton</span></div>
-            <div className="text-[11.5px] text-slate-500 mt-1">Produktivitas ~ {(totals.avg / (selectedRow?.luasHa||260)).toFixed(2)} ton/ha</div>
+            <div className="text-[11.5px] text-slate-500 mt-1">Produktivitas ~ {(totals.avg / (selectedRow?.luasHa || 260)).toFixed(2)} ton/ha</div>
           </div>
           <div className="rounded-[22px] border border-emerald-900/10 bg-white p-4 shadow-sm">
             <div className="text-[11px] uppercase tracking-wider text-emerald-700/80">Tertinggi</div>
             <div className="text-[20px] font-[800] text-emerald-950 mt-1">{totals.top?.nama || "-"}</div>
-            <div className="text-[13.5px] text-emerald-700 font-[650]">{totals.top ? totals.top.prediksi.toLocaleString("id-ID")+" ton" : "-"}</div>
+            <div className="text-[13.5px] text-emerald-700 font-[650]">{totals.top ? totals.top.prediksi.toLocaleString("id-ID") + " ton" : "-"}</div>
           </div>
-          <div className="rounded-[22px] border border-emerald-900/10 bg-gradient-to-br from-sky-50 to-emerald-50 p-4 shadow-sm">
+          <div className="rounded-[22px] border border-sky-50 to-emerald-50 p-4 shadow-sm bg-gradient-to-br from-sky-50 to-emerald-50">
             <div className="text-[11px] uppercase tracking-wider text-sky-800/80">Cuaca Jember (BMKG)</div>
             <div className="text-[14.5px] font-[700] text-sky-950 mt-1">
-              {selectedRow ? `${selectedRow.features.temp.toFixed(1)}°C · ${Math.round(selectedRow.features.humidity)}% RH` : "-"}
+              {selectedRow ? `${selectedRow.features.suhu_rata2_c?.toFixed(1) ?? "-"}°C · ${Math.round(selectedRow.features.kelembaban_persen) ?? "-"}% RH` : "-"}
             </div>
             <div className="text-[11.5px] text-sky-900/75 mt-1">
-              Angin {selectedRow?.features.windspeed.toFixed(1)} km/j • Dew {selectedRow?.features.dew}°C<br/>
+              Curah Hujan {selectedRow?.features.curah_hujan_mm?.toFixed?.(1) ?? "-"} mm<br />
               {lastSync ? "Sync: " + lastSync.toLocaleString("id-ID") : "Belum sync Firestore"}
             </div>
           </div>
@@ -406,7 +470,7 @@ export default function App() {
                 />
                 {geo && (
                   <GeoJSON
-                    key={rows.map(r=>r.prediksi).join("-").slice(0,200)}
+                    key={rows.map(r => r.prediksi).join("-").slice(0, 200)}
                     data={geo as any}
                     style={geoStyle as any}
                     onEachFeature={onEachFeature as any}
@@ -430,7 +494,7 @@ export default function App() {
                 <div className="font-[700] text-emerald-950">Detail Kecamatan</div>
                 <input
                   value={search}
-                  onChange={e=>setSearch(e.target.value)}
+                  onChange={e => setSearch(e.target.value)}
                   placeholder="cari kecamatan…"
                   className="text-[12px] border border-slate-300 rounded-xl px-3 py-[7px] w-[155px] focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 />
@@ -464,16 +528,15 @@ export default function App() {
                     </div>
                     <div className="rounded-xl bg-sky-50 border border-sky-100 py-2">
                       <div className="text-[10px] text-sky-700">Conf.</div>
-                      <div className="font-[700] text-sky-900 text-[15px]">{Math.round(selectedRow.confidence*100)}%</div>
+                      <div className="font-[700] text-sky-900 text-[15px]">{Math.round(selectedRow.confidence * 100)}%</div>
                     </div>
                   </div>
                   <div className="mt-3 text-[11.5px] leading-relaxed text-slate-600">
-                    Trend: <span className={selectedRow.trend==="naik" ? "text-emerald-700 font-[600]" : selectedRow.trend==="turun" ? "text-rose-600 font-[600]" : "text-slate-700 font-[600]"}>{selectedRow.trend}</span> • 
+                    Trend: <span className={selectedRow.trend === "naik" ? "text-emerald-700 font-[600]" : selectedRow.trend === "turun" ? "text-rose-600 font-[600]" : "text-slate-700 font-[600]"}>{selectedRow.trend}</span> •
                     Panen lag1 {selectedRow.features.panen_lag_1} t • lag2 {selectedRow.features.panen_lag_2} t
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <button onClick={()=>runPrediction(selectedRow.kode)} className="flex-1 text-[12.5px] font-[650] bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl py-[9px]">Prediksi Ulang</button>
-                    <button onClick={()=>{ const idx = filteredRows.findIndex(r=>r.kode===selectedRow.kode); const next = filteredRows[(idx+1)%filteredRows.length]; if(next) setSelectedKode(next.kode); }} className="text-[12px] px-3 py-[9px] rounded-xl border border-slate-300 hover:bg-slate-50">Next →</button>
+                    <button onClick={() => { const idx = filteredRows.findIndex(r => r.kode === selectedRow.kode); const next = filteredRows[(idx + 1) % filteredRows.length]; if (next) setSelectedKode(next.kode); }} className="w-full text-[12px] py-[9px] rounded-xl border border-slate-300 hover:bg-slate-50 text-center font-medium">Next Kecamatan →</button>
                   </div>
                 </div>
               )}
@@ -483,8 +546,8 @@ export default function App() {
                     <tr><th className="text-left py-[6px]">Kecamatan</th><th className="text-right">Ton</th><th className="text-right">Ha</th><th></th></tr>
                   </thead>
                   <tbody>
-                    {filteredRows.slice(0, 31).map(r=>(
-                      <tr key={r.kode} className={`border-t border-slate-100 ${r.kode===selectedKode ? "bg-emerald-50/80" : "hover:bg-slate-50"}`}>
+                    {filteredRows.slice(0, 31).map(r => (
+                      <tr key={r.kode} className={`border-t border-slate-100 ${r.kode === selectedKode ? "bg-emerald-50/80" : "hover:bg-slate-50"}`}>
                         <td className="py-[7px] pr-2">
                           <div className="font-[600] text-emerald-950">{r.nama}</div>
                           <div className="text-[10px] text-slate-500">{r.kode}</div>
@@ -492,7 +555,7 @@ export default function App() {
                         <td className="text-right font-[680]">{r.prediksi.toFixed(0)}</td>
                         <td className="text-right text-slate-600">{r.luasHa}</td>
                         <td className="text-right">
-                          <button onClick={()=>setSelectedKode(r.kode)} className="text-emerald-700 text-[11px] hover:underline">buka</button>
+                          <button onClick={() => setSelectedKode(r.kode)} className="text-emerald-700 text-[11px] hover:underline">buka</button>
                         </td>
                       </tr>
                     ))}
@@ -500,130 +563,27 @@ export default function App() {
                 </table>
               </div>
             </div>
-
-            {/* BMKG sync card */}
-            <div className="rounded-[24px] border border-sky-900/10 bg-gradient-to-br from-white to-sky-50/60 p-4 shadow-sm">
-              <div className="font-[700] text-sky-950">Sinkronisasi Cuaca BMKG → Firestore</div>
-              <div className="text-[11.5px] text-sky-900/80 mt-1 leading-relaxed">
-                Endpoint: <code className="bg-sky-100/70 px-1 rounded">api.bmkg.go.id/publik/prakiraan-cuaca?adm4=&#123;kode_desa&#125;</code><br/>
-                Agregasi per kecamatan, disimpan ke koleksi <b>cuaca_jember</b> tiap 3 jam.
-              </div>
-              <div className="flex gap-2 mt-3">
-                <button disabled={syncing} onClick={syncBmkgToFirestore}
-                  className="px-4 py-[9px] rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-[12.5px] font-[650] disabled:opacity-60">
-                  {syncing ? "Syncing…" : "Sync BMKG Sekarang"}
-                </button>
-                <div className="text-[11px] text-sky-900/80 pt-[7px]">
-                  {lastSync ? "Terakhir: " + lastSync.toLocaleTimeString("id-ID") : "Belum pernah"}
-                </div>
-              </div>
-              {weatherLog.length>0 && (
-                <div className="mt-3 text-[11px] max-h-[165px] overflow-auto border-t border-sky-100 pt-2 space-y-[6px]">
-                  {weatherLog.slice(0,8).map((w,i)=>(
-                    <div key={i} className="flex justify-between text-sky-950">
-                      <span className="font-[600]">{w.kecamatan_nama || w.kecamatan_kode}</span>
-                      <span>{w.temp_avg ?? "-"}°C • {w.humidity_avg ?? "-"}% • {w.windspeed_avg ?? "-"} km/h</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="text-[10.5px] text-sky-800/70 mt-3">
-                Firebase Project: <b>andrefirmansyah-f2129</b> • Firestore aktif. CORS BMKG otomatis fallback ke mock bila diblokir browser.
-              </div>
-            </div>
           </div>
         </section>
 
-        {/* Feature editor */}
-        <section className="rounded-[26px] border border-emerald-900/10 bg-white shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="font-[700] text-emerald-950">Input Fitur Model – {selectedRow?.nama}</div>
-              <div className="text-[11.5px] text-slate-500 mt-0.5">
-                Kandidat feature: {KANDIDAT_FEATURES.length} • input aktif: {modelInputMode === "sequence_3x12" ? "LSTM [1, 3, 12]" : "Dense [1, 16]"} • urutan harus sama saat inference
-              </div>
-            </div>
-            <div className="flex gap-2 text-[11.5px]">
-              <button onClick={()=>runPrediction(selectedRow?.kode)} className="px-3 py-[7px] rounded-xl bg-emerald-700 text-white font-[600]">Predict</button>
-              <button onClick={()=>{ if(!selectedRow) return; const nf = makeInitialFeatures(selectedRow.nama, KecamatanList.findIndex(k=>k.kode===selectedRow.kode)); setRows(rs=>rs.map(r=> r.kode===selectedRow.kode ? {...r, features:nf}:r)); }} className="px-3 py-[7px] rounded-xl border border-slate-300">Reset fitur</button>
-            </div>
-          </div>
-          <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
-            {selectedRow && KANDIDAT_FEATURES.map(fn => (
-              <label key={fn} className="block">
-                <div className="text-[10.5px] text-slate-600 mb-1">{fn}</div>
-                <input
-                  type="number"
-                  step="any"
-                  value={selectedRow.features[fn]}
-                  onChange={e=>{
-                    const v = parseFloat(e.target.value);
-                    setRows(prev => prev.map(r=> r.kode===selectedRow.kode ? { ...r, features: { ...r.features, [fn]: isNaN(v)?0:v } } : r));
-                  }}
-                  className="w-full text-[12.5px] border border-slate-300 rounded-lg px-[10px] py-[7px] focus:outline-none focus:ring-2 focus:ring-emerald-500/25 bg-white"
-                />
-              </label>
-            ))}
-          </div>
-          <div className="px-5 pb-4 text-[11px] text-slate-500 border-t border-slate-100 pt-3">
-            LSTM timestep feature ({LSTM_TIMESTEP_FEATURES.length}): {LSTM_TIMESTEP_FEATURES.join(", ")}. Timestep t-2/t-1 memakai tanam_lag dan panen_lag, timestep saat ini memakai luas tanam dan hist_mean_panen_kec.
-            bulan_sin / bulan_cos otomatis dari bulan berjalan. hist_mean_panen_kec, panen_lag_1/2, tanam_lag_1/2 sebaiknya diambil dari data historis kecamatan.
-            Model path: <code>/model/model.json</code> + <code>group1-shard1of1.bin</code>
-          </div>
-        </section>
-
-        {/* data table */}
-        <section className="rounded-[26px] border border-emerald-900/10 bg-white shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-slate-100 font-[700] text-emerald-950">Tabel Prediksi 31 Kecamatan – Jember</div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-[12px]">
-              <thead className="bg-slate-50 text-slate-600">
-                <tr>
-                  <th className="text-left px-4 py-[10px]">Kecamatan</th>
-                  <th className="text-right px-3 py-[10px]">Luas Tanam (ha)</th>
-                  <th className="text-right px-3 py-[10px]">Temp °C</th>
-                  <th className="text-right px-3 py-[10px]">RH %</th>
-                  <th className="text-right px-3 py-[10px]">Wind</th>
-                  <th className="text-right px-3 py-[10px]">Pupuk</th>
-                  <th className="text-right px-3 py-[10px]">Panen Lag1</th>
-                  <th className="text-right px-3 py-[10px]">Status</th>
-                  <th className="text-right px-3 py-[10px]">Prediksi (ton)</th>
-                  <th className="text-right px-4 py-[10px]">Prod (t/ha)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r=>{
-                  const status = getRowStatus(r);
-                  const meta = STATUS_META[status];
-                  return (
-                    <tr key={r.kode} className="border-t border-slate-100 hover:bg-emerald-50/40 cursor-pointer" onClick={()=>setSelectedKode(r.kode)}>
-                      <td className="px-4 py-[9px]">
-                        <div className="font-[620] text-emerald-950">{r.nama}</div>
-                        <div className="text-[10.5px] text-slate-500">{r.kode}</div>
-                      </td>
-                      <td className="text-right px-3">{r.features["luas tanam"]}</td>
-                      <td className="text-right px-3">{r.features.temp.toFixed(1)}</td>
-                      <td className="text-right px-3">{Math.round(r.features.humidity)}</td>
-                      <td className="text-right px-3">{r.features.windspeed.toFixed(1)}</td>
-                      <td className="text-right px-3">{r.features.jumlah_pupuk}</td>
-                      <td className="text-right px-3">{r.features.panen_lag_1}</td>
-                      <td className="text-right px-3">
-                        <span className={`inline-flex rounded-full border px-2 py-1 text-[10.5px] font-[800] ${meta.bg} ${meta.text}`}>{meta.label}</span>
-                      </td>
-                      <td className="text-right px-3 font-[700] text-emerald-800">{r.prediksi.toLocaleString("id-ID")}</td>
-                      <td className="text-right px-4 text-slate-700">{(r.prediksi / Math.max(1,r.luasHa)).toFixed(2)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        {/* Prediction Chart Section */}
+        <section>
+          <PredictionChart
+            data={selectedRow?.predictions12 || []}
+            kecamatanNama={selectedRow?.nama || "Kecamatan"}
+          />
         </section>
 
         <footer className="text-[11px] text-slate-500 text-center pb-6">
-          SiPanen Jember • Deep Learning (TensorFlow.js) • 16 input features • BMKG → Firestore sync 3 jam • © 2026 Dinas Pertanian Jember – demo AI
+          SiPanen Jember • Deep Learning (TensorFlow.js) • 16 input features • BMKG → Firestore auto-sync 3 jam • © 2026 Dinas Pertanian Jember – demo AI
         </footer>
       </main>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
       <style>{`
         .leaflet-container { background:#e9f3e8; font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; }
         .leaflet-control-attribution { font-size:10px; }

@@ -19,8 +19,10 @@ export function useBmkgFirestore(
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [weatherLog, setWeatherLog] = useState<any[]>([]);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   // Sync BMKG weather forecast to Firestore
+  // This can be called both automatically (timer) and manually (admin button)
   const syncBmkgToFirestore = async () => {
     setSyncing(true);
     const results: any[] = [];
@@ -77,12 +79,14 @@ export function useBmkgFirestore(
         };
         try {
           await addDoc(collection(db, "cuaca_jember"), docData);
-        } catch (e) {
+          setDbError(null);
+        } catch (e: any) {
           console.warn("firestore write fail", e);
+          setDbError(e.message || "Database write error");
         }
         results.push(docData);
 
-        // Update local state feature values
+        // Update local state feature values — map BMKG data to new feature names
         setRows((prev) =>
           prev.map((r) =>
             r.kode === kec.kode
@@ -90,15 +94,15 @@ export function useBmkgFirestore(
                   ...r,
                   features: {
                     ...r.features,
-                    temp: docData.temp_avg ?? r.features.temp,
-                    humidity: docData.humidity_avg ?? r.features.humidity,
-                    windspeed: docData.windspeed_avg ?? r.features.windspeed,
-                    dew: Number(
-                      (
-                        (docData.temp_avg ?? r.features.temp) -
-                        (100 - (docData.humidity_avg ?? r.features.humidity)) / 5
-                      ).toFixed(1)
-                    )
+                    suhu_rata2_c: docData.temp_avg ?? r.features.suhu_rata2_c,
+                    kelembaban_persen: docData.humidity_avg ?? r.features.kelembaban_persen,
+                    // Shift curah hujan lags
+                    curah_hujan_lag2: r.features.curah_hujan_lag1,
+                    curah_hujan_lag1: r.features.curah_hujan_mm,
+                    // Approximate curah_hujan_mm from humidity (rough proxy)
+                    curah_hujan_mm: docData.humidity_avg
+                      ? Number(((docData.humidity_avg / 100) * 8).toFixed(2))
+                      : r.features.curah_hujan_mm,
                   }
                 }
               : r
@@ -128,11 +132,15 @@ export function useBmkgFirestore(
           if (ts?.toDate) setLastSync(ts.toDate());
           else if (d[0].waktu_sync_local) setLastSync(new Date(d[0].waktu_sync_local));
         }
-      } catch {}
+        setDbError(null);
+      } catch (err: any) {
+        console.warn("Firestore initialization failed:", err.message);
+        setDbError(err.message || "Database connection error");
+      }
     })();
   }, []);
 
-  // Set up periodic sync every 3 hours
+  // Auto-sync every 3 hours — does NOT require authentication
   useEffect(() => {
     const id = setInterval(() => {
       syncBmkgToFirestore();
@@ -144,6 +152,7 @@ export function useBmkgFirestore(
     syncing,
     lastSync,
     weatherLog,
+    dbError,
     syncBmkgToFirestore
   };
 }
