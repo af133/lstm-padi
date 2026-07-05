@@ -30,29 +30,32 @@ type AdministrativeProps = Partial<KecamatanFeatureProps> & Record<string, any>;
 type KecamatanFC = GeoJSON.FeatureCollection<any, AdministrativeProps>;
 type HarvestStatus = "aman" | "waspada" | "kritis";
 
+// ---------------------------------------------------------------------------
+// Palet "Ledger Sawah": kertas krem, hijau sawah, emas padi, tanah liat.
+// ---------------------------------------------------------------------------
 const STATUS_META: Record<HarvestStatus, { label: string; color: string; stroke: string; bg: string; text: string; desc: string }> = {
   aman: {
     label: "Aman",
-    color: "#22c55e",
-    stroke: "#15803d",
-    bg: "bg-emerald-50 border-emerald-200",
-    text: "text-emerald-800",
+    color: "#22C55E",
+    stroke: "#15803D",
+    bg: "bg-[#DCFCE7] border-[#BBF7D0]",
+    text: "text-[#15803D]",
     desc: "Prediksi panen dan cuaca masih mendukung."
   },
   waspada: {
     label: "Waspada",
-    color: "#f59e0b",
-    stroke: "#b45309",
-    bg: "bg-amber-50 border-amber-200",
-    text: "text-amber-800",
-    desc: "Ada penurunan produktivitas atau indikasi cuaca yang perlu dipantau."
+    color: "#F59E0B",
+    stroke: "#B45309",
+    bg: "bg-[#FEF3C7] border-[#FDE68A]",
+    text: "text-[#6B5410]"
+    ,desc: "Ada penurunan produktivitas atau indikasi cuaca yang perlu dipantau."
   },
   kritis: {
     label: "Kritis",
-    color: "#ef4444",
-    stroke: "#b91c1c",
-    bg: "bg-rose-50 border-rose-200",
-    text: "text-rose-800",
+    color: "#F43F5E",
+    stroke: "#BE123C",
+    bg: "bg-[#FFE4E6] border-[#FECDD3]",
+    text: "text-[#BE123C]",
     desc: "Prioritas monitoring lapang karena risiko panen relatif tinggi."
   }
 };
@@ -102,6 +105,20 @@ function centroidFromGeometry(geometry?: any) {
   return { lon: sum.lng / coords.length, lat: sum.lat / coords.length };
 }
 
+// Divider bergaya garis kontur peta topografi — jadi signature visual halaman ini.
+function ContourDivider() {
+  return (
+    <div className="w-full overflow-hidden h-[18px] opacity-70 select-none pointer-events-none" aria-hidden="true">
+      <svg viewBox="0 0 1200 18" preserveAspectRatio="none" className="w-full h-full">
+        <path d="M0,9 C60,2 120,16 180,9 C240,2 300,16 360,9 C420,2 480,16 540,9 C600,2 660,16 720,9 C780,2 840,16 900,9 C960,2 1020,16 1080,9 C1120,4 1160,14 1200,9"
+          fill="none" stroke="#F59E0B" strokeWidth="1" strokeOpacity="0.55" />
+        <path d="M0,13 C60,7 120,19 180,13 C240,7 300,19 360,13 C420,7 480,19 540,13 C600,7 660,19 720,13 C780,7 840,19 900,13 C960,7 1020,19 1080,13 C1120,9 1160,17 1200,13"
+          fill="none" stroke="#22C55E" strokeWidth="1" strokeOpacity="0.35" />
+      </svg>
+    </div>
+  );
+}
+
 export default function App() {
   const [geo, setGeo] = useState<KecamatanFC | null>(null);
   const [rows, setRows] = useState<KecamatanRow[]>([]);
@@ -117,13 +134,10 @@ export default function App() {
   const mapRef = useRef<L.Map | null>(null);
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
 
-  // Current view: "guest" or "admin"
   const [currentPage, setCurrentPage] = useState<"guest" | "admin">("guest");
 
-  // Derived state for the currently selected Kecamatan
   const selectedRow = rows.find(r => r.kode === selectedKode) || rows[0];
 
-  // Custom hooks for LSTM model loading and weather synchronization
   const {
     modelStatus,
     modelInputMode,
@@ -139,7 +153,6 @@ export default function App() {
     syncBmkgToFirestore
   } = useBmkgFirestore(setRows, runPrediction);
 
-  // Authentication states
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem("sipanen_admin_auth") === "true";
   });
@@ -157,7 +170,6 @@ export default function App() {
     setCurrentPage("guest");
   };
 
-  // load geojson
   useEffect(() => {
     let cancelled = false;
     const loadAdministrativeLayer = async () => {
@@ -184,7 +196,6 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-  // init rows with Firestore features if available
   useEffect(() => {
     if (!geo) return;
     const initializeRows = async () => {
@@ -288,10 +299,10 @@ export default function App() {
     const status = getRowStatus(row);
     const meta = STATUS_META[status];
     return {
-      fillColor: row ? meta.color : "#cbd5e1",
+      fillColor: row ? meta.color : "#E2E8F0",
       weight: selectedKode === code ? 3 : 1.15,
       opacity: 1,
-      color: selectedKode === code ? "#0f172a" : row ? meta.stroke : "#94a3b8",
+      color: selectedKode === code ? "#1E293B" : row ? meta.stroke : "#94A3B8",
       dashArray: selectedKode === code ? "" : "2 2",
       fillOpacity: selectedKode === code ? 0.86 : 0.72,
     };
@@ -319,13 +330,13 @@ export default function App() {
     if (row) {
       layer.bindPopup(
         `<div style="font-family:Inter,sans-serif;min-width:230px;">
-          <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;">${remark}</div>
-          <div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:2px;">${namaWilayah}</div>
-          <div style="font-size:12px;color:#475569;margin-top:2px;">Kecamatan ${kecamatan} • ${kodeWilayah}</div>
-          <div style="display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:6px 9px;border-radius:999px;background:${meta.color}22;color:${meta.stroke};font-weight:800;font-size:12px;border:1px solid ${meta.color}55;">
-            <span style="width:9px;height:9px;border-radius:999px;background:${meta.color};display:inline-block;"></span>${meta.label}
+          <div style="font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:.1em;font-weight:600;">${remark}</div>
+          <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:#1E293B;margin-top:2px;">${namaWilayah}</div>
+          <div style="font-size:12px;color:#475569;margin-top:2px;">Kecamatan ${kecamatan} • <span style="font-family:'JetBrains Mono',monospace;">${kodeWilayah}</span></div>
+          <div style="display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:6px 10px;border-radius:999px;background:${meta.color}1f;color:${meta.stroke};font-weight:700;font-size:12px;border:1px solid ${meta.color}55;">
+            <span style="width:8px;height:8px;border-radius:999px;background:${meta.color};display:inline-block;"></span>${meta.label}
           </div>
-          <div style="margin-top:10px;font-size:12px;line-height:1.55;color:#334155;">
+          <div style="margin-top:10px;font-size:12px;line-height:1.6;color:#334155;font-family:'JetBrains Mono',monospace;">
             Prediksi: <b>${row.prediksi.toLocaleString("id-ID")} ton</b><br/>
             Produktivitas: <b>${(row.prediksi / Math.max(1, row.luasHa)).toFixed(2)} ton/ha</b><br/>
             Luas tanam: ${row.luasHa} ha<br/>
@@ -345,7 +356,6 @@ export default function App() {
     }
   };
 
-  // Render Admin Dashboard if Admin page is active and authenticated
   if (currentPage === "admin" && isAuthenticated) {
     return (
       <AdminDashboard
@@ -364,96 +374,116 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f8f4] text-slate-800">
-      <header className="sticky top-0 z-900 backdrop-blur bg-[#f6f8f4]/85 border-b border-emerald-900/10">
-        <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 py-4 flex flex-wrap items-center gap-4 justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-600 to-green-700 text-white flex items-center justify-center font-black shadow shadow-emerald-700/25">SJ</div>
+    <div className="min-h-screen text-[#1E293B]" style={{ background: "linear-gradient(160deg, #F0FDF4 0%, #F6FEF9 35%, #F0F9FF 100%)", fontFamily: "'Inter', ui-sans-serif, system-ui" }}>
+      <header className="sticky top-0 z-[900] backdrop-blur bg-[#F6FEF9]/90 border-b border-[#F59E0B]/25">
+        <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 pt-4 flex flex-wrap items-center gap-4 justify-between">
+          <div className="flex items-center gap-3.5">
+            <div className="relative w-12 h-12 shrink-0">
+              <div className="absolute inset-0 rounded-[14px] bg-gradient-to-br from-[#22C55E] to-[#15803D] shadow-[0_3px_10px_rgba(34,67,46,0.28)] rotate-[-4deg]" />
+              <div className="absolute inset-0 rounded-[14px] flex items-center justify-center text-[#F6FEF9]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 17 }}>SJ</div>
+            </div>
             <div>
-              <div className="font-[700] text-[17px] tracking-tight text-emerald-950">SiPanen • Jember Harvest AI</div>
-              <div className="text-[11.5px] text-emerald-800/70 -mt-0.5">Dashboard prediksi panen per Kecamatan – Kabupaten Jember, Jawa Timur</div>
+              <div className="text-[19px] tracking-tight text-[#15803D]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700 }}>
+                SiPanen <span className="text-[#F59E0B]">·</span> Jember Harvest AI
+              </div>
+              <div className="text-[11.5px] text-[#475569] -mt-0.5">Dashboard prediksi panen per Kecamatan — Kabupaten Jember, Jawa Timur</div>
             </div>
           </div>
           <div className="flex items-center gap-3 text-[12px]">
-            <span className={`px-2.5 py-1 rounded-full border ${modelStatus === "ready" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : modelStatus === "fallback" ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-slate-100 border-slate-200 text-slate-500"}`}>
+            <span
+              className="px-2.5 py-1 rounded-full border font-medium"
+              style={
+                modelStatus === "ready"
+                  ? { background: "#DCFCE7", borderColor: "#BBF7D0", color: "#15803D" }
+                  : modelStatus === "fallback"
+                  ? { background: "#FEF3C7", borderColor: "#FDE68A", color: "#6B5410" }
+                  : { background: "#EFEBDD", borderColor: "#BBF7D0", color: "#475569" }
+              }
+            >
               Model: {modelStatus === "ready" ? "TensorFlow.js ✔" : modelStatus === "fallback" ? "Heuristik" : "memuat…"}
             </span>
-            {/* <span className="text-slate-500 hidden md:inline">
-              {modelInputMode === "sequence_3x16" ? "LSTM 3x16" : "Flat 16"} • shape {loadedModelShape} • Firestore Live
-            </span> */}
             {isAuthenticated ? (
               <button
                 onClick={() => setCurrentPage("admin")}
-                className="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-[12.5px] font-semibold shadow-sm transition-all"
+                className="px-3.5 py-2 rounded-xl bg-[#0EA5E9] hover:bg-[#0284C7] text-white text-[12.5px] font-semibold shadow-sm transition-all"
               >
                 Dashboard Admin
               </button>
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl border border-emerald-600 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[12.5px] font-semibold transition-all"
+                className="px-3.5 py-2 rounded-xl border border-[#22C55E] bg-[#DCFCE7] hover:bg-[#E2ECDD] text-[#15803D] text-[12.5px] font-semibold transition-all"
               >
                 Login Admin
               </button>
             )}
           </div>
         </div>
+        <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 mt-2">
+          <ContourDivider />
+        </div>
       </header>
 
       {dbError && (
         <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 mt-4 animate-fade-in">
-          <div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-2xl text-[12.5px] font-medium flex items-start gap-2.5 shadow-sm">
+          <div className="bg-[#FFE4E6] border border-[#FECDD3] text-[#BE123C] px-4 py-3 rounded-2xl text-[12.5px] font-medium flex items-start gap-2.5 shadow-sm">
             <span className="text-[15px] pt-0.5">⚠️</span>
             <div>
               <span className="font-semibold">Kesalahan Koneksi Firestore:</span> {dbError}.<br />
-              Aplikasi berjalan dalam mode offline/fallback lokal. Untuk menyinkronkan data cuaca BMKG dan menyimpan input fitur ke database, pastikan Anda telah membuat database Firestore bernama <code>(default)</code> di Firebase Console.
+              Aplikasi berjalan dalam mode offline/fallback lokal. Untuk menyinkronkan data cuaca BMKG dan menyimpan input fitur ke database, pastikan Anda telah membuat database Firestore bernama <code className="font-mono">(default)</code> di Firebase Console.
             </div>
           </div>
         </div>
       )}
 
-      <main className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 py-7 space-y-7">
+      <main className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 py-7 space-y-8">
         {/* KPI */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-[22px] border border-emerald-900/10 bg-white p-4 shadow-sm">
-            <div className="text-[11px] uppercase tracking-wider text-emerald-700/80">Total Prediksi Kabupaten</div>
-            <div className="text-[28px] font-[800] text-emerald-950 mt-1">{totals.tot.toLocaleString("id-ID", { maximumFractionDigits: 0 })} <span className="text-[15px] font-[600] text-emerald-700">ton</span></div>
-            <div className="text-[11.5px] text-slate-500 mt-1">31 kecamatan • {new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</div>
+          <div className="rounded-[20px] border border-[#DCF2E3] bg-white/80 p-4 shadow-[0_1px_2px_rgba(45,42,31,0.04)] border-l-4 border-l-[#22C55E]">
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#475569] font-semibold">Total Prediksi Kabupaten</div>
+            <div className="text-[27px] mt-1 text-[#15803D]" style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
+              {totals.tot.toLocaleString("id-ID", { maximumFractionDigits: 0 })} <span className="text-[14px] font-medium text-[#22C55E]">ton</span>
+            </div>
+            <div className="text-[11px] text-[#64748B] mt-1">31 kecamatan • {new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</div>
           </div>
-          <div className="rounded-[22px] border border-emerald-900/10 bg-white p-4 shadow-sm">
-            <div className="text-[11px] uppercase tracking-wider text-emerald-700/80">Rata-rata / Kecamatan</div>
-            <div className="text-[28px] font-[800] text-emerald-950 mt-1">{totals.avg.toFixed(0)} <span className="text-[15px] font-[600] text-emerald-700">ton</span></div>
-            <div className="text-[11.5px] text-slate-500 mt-1">Produktivitas ~ {(totals.avg / (selectedRow?.luasHa || 260)).toFixed(2)} ton/ha</div>
+          <div className="rounded-[20px] border border-[#DCF2E3] bg-white/80 p-4 shadow-[0_1px_2px_rgba(45,42,31,0.04)] border-l-4 border-l-[#F59E0B]">
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#475569] font-semibold">Rata-rata / Kecamatan</div>
+            <div className="text-[27px] mt-1 text-[#6B5410]" style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
+              {totals.avg.toFixed(0)} <span className="text-[14px] font-medium text-[#F59E0B]">ton</span>
+            </div>
+            <div className="text-[11px] text-[#64748B] mt-1">Produktivitas ~ {(totals.avg / (selectedRow?.luasHa || 260)).toFixed(2)} ton/ha</div>
           </div>
-          <div className="rounded-[22px] border border-emerald-900/10 bg-white p-4 shadow-sm">
-            <div className="text-[11px] uppercase tracking-wider text-emerald-700/80">Tertinggi</div>
-            <div className="text-[20px] font-[800] text-emerald-950 mt-1">{totals.top?.nama || "-"}</div>
-            <div className="text-[13.5px] text-emerald-700 font-[650]">{totals.top ? totals.top.prediksi.toLocaleString("id-ID") + " ton" : "-"}</div>
+          <div className="rounded-[20px] border border-[#DCF2E3] bg-white/80 p-4 shadow-[0_1px_2px_rgba(45,42,31,0.04)] border-l-4 border-l-[#0EA5E9]">
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#475569] font-semibold">Tertinggi</div>
+            <div className="text-[19px] mt-1 text-[#1E293B]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700 }}>{totals.top?.nama || "-"}</div>
+            <div className="text-[13px] text-[#0EA5E9] font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{totals.top ? totals.top.prediksi.toLocaleString("id-ID") + " ton" : "-"}</div>
           </div>
-          <div className="rounded-[22px] border border-sky-50 to-emerald-50 p-4 shadow-sm bg-gradient-to-br from-sky-50 to-emerald-50">
-            <div className="text-[11px] uppercase tracking-wider text-sky-800/80">Cuaca Jember (BMKG)</div>
-            <div className="text-[14.5px] font-[700] text-sky-950 mt-1">
+          <div className="rounded-[20px] border border-[#BAE6FD] p-4 shadow-[0_1px_2px_rgba(45,42,31,0.04)] bg-gradient-to-br from-[#E0F2FE] to-[#ECFDF5]">
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#0369A1] font-semibold">Cuaca Jember (BMKG)</div>
+            <div className="text-[14px] mt-1 text-[#0284C7] font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
               {selectedRow ? `${selectedRow.features.suhu_rata2_c?.toFixed(1) ?? "-"}°C · ${Math.round(selectedRow.features.kelembaban_persen) ?? "-"}% RH` : "-"}
             </div>
-            <div className="text-[11.5px] text-sky-900/75 mt-1">
+            <div className="text-[11px] text-[#0369A1]/80 mt-1">
               Curah Hujan {selectedRow?.features.curah_hujan_mm?.toFixed?.(1) ?? "-"} mm<br />
               {lastSync ? "Sync: " + lastSync.toLocaleString("id-ID") : "Belum sync Firestore"}
             </div>
           </div>
         </section>
 
+        <ContourDivider />
+
         {/* Map + side */}
         <section className="grid grid-cols-1 xl:grid-cols-[1.55fr_0.95fr] gap-5">
-          <div className="rounded-[26px] border border-emerald-900/10 bg-white shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 text-[12.5px]">
+          <div className="rounded-[24px] border border-[#DCF2E3] bg-white/80 shadow-[0_1px_3px_rgba(45,42,31,0.06)] overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#E3F6E8] text-[12.5px]">
               <div>
-                <div className="font-[650] text-emerald-950">Layer Wilayah Administrasi Jember</div>
-                <div className="text-[10.5px] text-slate-500 mt-0.5">Klik polygon desa/kecamatan untuk membuka detail prediksi dan status.</div>
+                <div className="text-[#15803D]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700 }}>Layer Wilayah Administrasi Jember</div>
+                <div className="text-[10.5px] text-[#64748B] mt-0.5">Klik polygon desa/kecamatan untuk membuka detail prediksi dan status.</div>
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-2 text-[10.5px] text-slate-600">
-                <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#22c55e] border border-emerald-700"></span>Aman {statusCounts.aman}</span>
-                <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#f59e0b] border border-amber-700"></span>Waspada {statusCounts.waspada}</span>
-                <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-[#ef4444] border border-rose-700"></span>Kritis {statusCounts.kritis}</span>
+              <div className="flex flex-wrap items-center justify-end gap-2 text-[10.5px] text-[#334155]">
+                <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: STATUS_META.aman.color }}></span>Aman {statusCounts.aman}</span>
+                <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: STATUS_META.waspada.color }}></span>Waspada {statusCounts.waspada}</span>
+                <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: STATUS_META.kritis.color }}></span>Kritis {statusCounts.kritis}</span>
               </div>
             </div>
             <div className="h-[520px]">
@@ -479,7 +509,7 @@ export default function App() {
                 )}
               </MapContainer>
             </div>
-            <div className="px-4 py-[10px] text-[11px] text-slate-500 border-t border-slate-100 flex flex-wrap gap-x-5 gap-y-1">
+            <div className="px-4 py-[10px] text-[11px] text-[#64748B] border-t border-[#E3F6E8] flex flex-wrap gap-x-5 gap-y-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
               <span>Data batas administrasi aktif: {geoSource}</span>
               <span>Kolom cocok: NAMOBJ, WADMKC, WADMKK, WADMPR, kode</span>
               <span>Model input: {KANDIDAT_FEATURES.length} fitur</span>
@@ -489,73 +519,73 @@ export default function App() {
 
           {/* Side panel */}
           <div className="space-y-4">
-            <div className="rounded-[24px] border border-emerald-900/10 bg-white p-4 shadow-sm">
+            <div className="rounded-[22px] border border-[#DCF2E3] bg-white/80 p-4 shadow-[0_1px_3px_rgba(45,42,31,0.06)]">
               <div className="flex items-center justify-between mb-3">
-                <div className="font-[700] text-emerald-950">Detail Kecamatan</div>
+                <div className="text-[#15803D]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700 }}>Detail Kecamatan</div>
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="cari kecamatan…"
-                  className="text-[12px] border border-slate-300 rounded-xl px-3 py-[7px] w-[155px] focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  className="text-[12px] border border-[#BBF7D0] rounded-xl px-3 py-[7px] w-[155px] bg-[#F0FDF4] focus:outline-none focus:ring-2 focus:ring-[#22C55E]/25"
                 />
               </div>
               {selectedRow && (
                 <div>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-[20px] font-[800] text-emerald-950">{selectedRow.nama}</div>
-                      <div className="text-[11px] text-slate-500">{selectedRow.kode} • {selectedRow.lat.toFixed(3)}, {selectedRow.lon.toFixed(3)}</div>
+                      <div className="text-[19px] text-[#1E293B]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700 }}>{selectedRow.nama}</div>
+                      <div className="text-[11px] text-[#64748B]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{selectedRow.kode} • {selectedRow.lat.toFixed(3)}, {selectedRow.lon.toFixed(3)}</div>
                     </div>
-                    <div className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-[800] ${selectedStatusMeta.bg} ${selectedStatusMeta.text}`}>
+                    <div className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-bold ${selectedStatusMeta.bg} ${selectedStatusMeta.text}`}>
                       {selectedStatusMeta.label}
                     </div>
                   </div>
                   {selectedLayerInfo && (
-                    <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11.5px] text-slate-700">
-                      <div className="font-[750] text-slate-950">Layer diklik: {selectedLayerInfo.namaWilayah}</div>
+                    <div className="mt-3 rounded-2xl border border-[#E3F6E8] bg-[#F0FDF4] px-3 py-2 text-[11.5px] text-[#334155]">
+                      <div className="font-semibold text-[#1E293B]">Layer diklik: {selectedLayerInfo.namaWilayah}</div>
                       <div>Kecamatan {selectedLayerInfo.kecamatan} • kode {selectedLayerInfo.kodeWilayah}</div>
-                      <div className="text-slate-500">Sumber: {selectedLayerInfo.sumber}</div>
+                      <div className="text-[#64748B]">Sumber: {selectedLayerInfo.sumber}</div>
                     </div>
                   )}
                   <div className="grid grid-cols-3 gap-2 mt-3 text-center">
-                    <div className="rounded-xl bg-emerald-50 border border-emerald-100 py-2">
-                      <div className="text-[10px] text-emerald-700">Prediksi</div>
-                      <div className="font-[750] text-emerald-900 text-[15px]">{selectedRow.prediksi.toFixed(0)}<span className="text-[11px]">t</span></div>
+                    <div className="rounded-xl bg-[#DCFCE7] border border-[#BBF7D0] py-2">
+                      <div className="text-[10px] text-[#22C55E] font-medium">Prediksi</div>
+                      <div className="text-[#15803D] text-[15px]" style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{selectedRow.prediksi.toFixed(0)}<span className="text-[11px]">t</span></div>
                     </div>
-                    <div className="rounded-xl bg-slate-50 border border-slate-200 py-2">
-                      <div className="text-[10px] text-slate-600">Luas Tanam</div>
-                      <div className="font-[700] text-slate-900 text-[15px]">{selectedRow.luasHa}<span className="text-[11px]">ha</span></div>
+                    <div className="rounded-xl bg-[#ECFDF5] border border-[#DCF2E3] py-2">
+                      <div className="text-[10px] text-[#64748B] font-medium">Luas Tanam</div>
+                      <div className="text-[#1E293B] text-[15px]" style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{selectedRow.luasHa}<span className="text-[11px]">ha</span></div>
                     </div>
-                    <div className="rounded-xl bg-sky-50 border border-sky-100 py-2">
-                      <div className="text-[10px] text-sky-700">Conf.</div>
-                      <div className="font-[700] text-sky-900 text-[15px]">{Math.round(selectedRow.confidence * 100)}%</div>
+                    <div className="rounded-xl bg-[#E0F2FE] border border-[#BAE6FD] py-2">
+                      <div className="text-[10px] text-[#0369A1] font-medium">Conf.</div>
+                      <div className="text-[#0284C7] text-[15px]" style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>{Math.round(selectedRow.confidence * 100)}%</div>
                     </div>
                   </div>
-                  <div className="mt-3 text-[11.5px] leading-relaxed text-slate-600">
-                    Trend: <span className={selectedRow.trend === "naik" ? "text-emerald-700 font-[600]" : selectedRow.trend === "turun" ? "text-rose-600 font-[600]" : "text-slate-700 font-[600]"}>{selectedRow.trend}</span> •
+                  <div className="mt-3 text-[11.5px] leading-relaxed text-[#475569]">
+                    Trend: <span className={selectedRow.trend === "naik" ? "text-[#15803D] font-semibold" : selectedRow.trend === "turun" ? "text-[#BE123C] font-semibold" : "text-[#334155] font-semibold"}>{selectedRow.trend}</span> •
                     Panen lag1 {selectedRow.features.panen_lag_1} t • lag2 {selectedRow.features.panen_lag_2} t
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <button onClick={() => { const idx = filteredRows.findIndex(r => r.kode === selectedRow.kode); const next = filteredRows[(idx + 1) % filteredRows.length]; if (next) setSelectedKode(next.kode); }} className="w-full text-[12px] py-[9px] rounded-xl border border-slate-300 hover:bg-slate-50 text-center font-medium">Next Kecamatan →</button>
+                    <button onClick={() => { const idx = filteredRows.findIndex(r => r.kode === selectedRow.kode); const next = filteredRows[(idx + 1) % filteredRows.length]; if (next) setSelectedKode(next.kode); }} className="w-full text-[12px] py-[9px] rounded-xl border border-[#BBF7D0] hover:bg-[#F0FDF4] text-center font-medium text-[#334155] transition-colors">Kecamatan berikutnya →</button>
                   </div>
                 </div>
               )}
               <div className="mt-4 max-h-[260px] overflow-auto pr-1">
                 <table className="w-full text-[11.5px]">
-                  <thead className="text-slate-500 sticky top-0 bg-white">
-                    <tr><th className="text-left py-[6px]">Kecamatan</th><th className="text-right">Ton</th><th className="text-right">Ha</th><th></th></tr>
+                  <thead className="text-[#64748B] sticky top-0 bg-white/95">
+                    <tr><th className="text-left py-[6px] font-semibold uppercase tracking-wide text-[10px]">Kecamatan</th><th className="text-right font-semibold uppercase tracking-wide text-[10px]">Ton</th><th className="text-right font-semibold uppercase tracking-wide text-[10px]">Ha</th><th></th></tr>
                   </thead>
                   <tbody>
                     {filteredRows.slice(0, 31).map(r => (
-                      <tr key={r.kode} className={`border-t border-slate-100 ${r.kode === selectedKode ? "bg-emerald-50/80" : "hover:bg-slate-50"}`}>
+                      <tr key={r.kode} className={`border-t border-[#E3F6E8] ${r.kode === selectedKode ? "bg-[#DCFCE7]/70" : "hover:bg-[#F0FDF4]"}`}>
                         <td className="py-[7px] pr-2">
-                          <div className="font-[600] text-emerald-950">{r.nama}</div>
-                          <div className="text-[10px] text-slate-500">{r.kode}</div>
+                          <div className="font-semibold text-[#15803D]">{r.nama}</div>
+                          <div className="text-[10px] text-[#64748B]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{r.kode}</div>
                         </td>
-                        <td className="text-right font-[680]">{r.prediksi.toFixed(0)}</td>
-                        <td className="text-right text-slate-600">{r.luasHa}</td>
+                        <td className="text-right font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{r.prediksi.toFixed(0)}</td>
+                        <td className="text-right text-[#475569]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{r.luasHa}</td>
                         <td className="text-right">
-                          <button onClick={() => setSelectedKode(r.kode)} className="text-emerald-700 text-[11px] hover:underline">buka</button>
+                          <button onClick={() => setSelectedKode(r.kode)} className="text-[#22C55E] text-[11px] hover:underline font-medium">buka</button>
                         </td>
                       </tr>
                     ))}
@@ -566,6 +596,8 @@ export default function App() {
           </div>
         </section>
 
+        <ContourDivider />
+
         {/* Prediction Chart Section */}
         <section>
           <PredictionChart
@@ -574,7 +606,7 @@ export default function App() {
           />
         </section>
 
-        <footer className="text-[11px] text-slate-500 text-center pb-6">
+        <footer className="text-[11px] text-[#64748B] text-center pb-6" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
           SiPanen Jember • Deep Learning (TensorFlow.js) • 16 input features • BMKG → Firestore auto-sync 3 jam • © 2026 Dinas Pertanian Jember – demo AI
         </footer>
       </main>
@@ -585,8 +617,13 @@ export default function App() {
         onLoginSuccess={handleLoginSuccess}
       />
       <style>{`
-        .leaflet-container { background:#e9f3e8; font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; }
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600..700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+        .leaflet-container { background:#E7EEE1; font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; }
         .leaflet-control-attribution { font-size:10px; }
+        .leaflet-popup-content-wrapper { border-radius: 14px; border: 1px solid #DCF2E3; box-shadow: 0 6px 20px rgba(45,42,31,0.14); }
+        .leaflet-popup-tip { background: #fff; }
+        @keyframes fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fade-in .25s ease-out; }
       `}</style>
     </div>
   );
