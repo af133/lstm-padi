@@ -1,0 +1,502 @@
+{
+  "type": "FeatureCollection",
+  "name": "jember_kecamatan",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Ajung",
+        "REMARK": "Kecamatan",
+        "WADMKC": "AJUNG",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.17",
+        "kode_bmkg": "35.09.17"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.25, -7.9], [113.4, -7.9], [113.4, -8.025], [113.25, -8.025], [113.25, -7.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Ambulu",
+        "REMARK": "Kecamatan",
+        "WADMKC": "AMBULU",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.12",
+        "kode_bmkg": "35.09.12"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.4, -7.9], [113.55, -7.9], [113.55, -8.025], [113.4, -8.025], [113.4, -7.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Arjasa",
+        "REMARK": "Kecamatan",
+        "WADMKC": "ARJASA",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.22",
+        "kode_bmkg": "35.09.22"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.55, -7.9], [113.7, -7.9], [113.7, -8.025], [113.55, -8.025], [113.55, -7.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Balung",
+        "REMARK": "Kecamatan",
+        "WADMKC": "BALUNG",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.10",
+        "kode_bmkg": "35.09.10"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.7, -7.9], [113.85, -7.9], [113.85, -8.025], [113.7, -8.025], [113.7, -7.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Bangsalsari",
+        "REMARK": "Kecamatan",
+        "WADMKC": "BANGSALSARI",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.09",
+        "kode_bmkg": "35.09.09"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.85, -7.9], [114.0, -7.9], [114.0, -8.025], [113.85, -8.025], [113.85, -7.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Gumukmas",
+        "REMARK": "Kecamatan",
+        "WADMKC": "GUMUKMAS",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.04",
+        "kode_bmkg": "35.09.04"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[114.0, -7.9], [114.15, -7.9], [114.15, -8.025], [114.0, -8.025], [114.0, -7.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Jelbuk",
+        "REMARK": "Kecamatan",
+        "WADMKC": "JELBUK",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.25",
+        "kode_bmkg": "35.09.25"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.25, -8.025], [113.4, -8.025], [113.4, -8.15], [113.25, -8.15], [113.25, -8.025]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Jenggawah",
+        "REMARK": "Kecamatan",
+        "WADMKC": "JENGGAWAH",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.16",
+        "kode_bmkg": "35.09.16"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.4, -8.025], [113.55, -8.025], [113.55, -8.15], [113.4, -8.15], [113.4, -8.025]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Jombang",
+        "REMARK": "Kecamatan",
+        "WADMKC": "JOMBANG",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.01",
+        "kode_bmkg": "35.09.01"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.55, -8.025], [113.7, -8.025], [113.7, -8.15], [113.55, -8.15], [113.55, -8.025]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Kalisat",
+        "REMARK": "Kecamatan",
+        "WADMKC": "KALISAT",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.27",
+        "kode_bmkg": "35.09.27"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.7, -8.025], [113.85, -8.025], [113.85, -8.15], [113.7, -8.15], [113.7, -8.025]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Kaliwates",
+        "REMARK": "Kecamatan",
+        "WADMKC": "KALIWATES",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.19",
+        "kode_bmkg": "35.09.19"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.85, -8.025], [114.0, -8.025], [114.0, -8.15], [113.85, -8.15], [113.85, -8.025]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Kencong",
+        "REMARK": "Kecamatan",
+        "WADMKC": "KENCONG",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.02",
+        "kode_bmkg": "35.09.02"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[114.0, -8.025], [114.15, -8.025], [114.15, -8.15], [114.0, -8.15], [114.0, -8.025]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Ledokombo",
+        "REMARK": "Kecamatan",
+        "WADMKC": "LEDOKOMBO",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.28",
+        "kode_bmkg": "35.09.28"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.25, -8.15], [113.4, -8.15], [113.4, -8.275], [113.25, -8.275], [113.25, -8.15]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Mayang",
+        "REMARK": "Kecamatan",
+        "WADMKC": "MAYANG",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.26",
+        "kode_bmkg": "35.09.26"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.4, -8.15], [113.55, -8.15], [113.55, -8.275], [113.4, -8.275], [113.4, -8.15]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Mumbulsari",
+        "REMARK": "Kecamatan",
+        "WADMKC": "MUMBULSARI",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.23",
+        "kode_bmkg": "35.09.23"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.55, -8.15], [113.7, -8.15], [113.7, -8.275], [113.55, -8.275], [113.55, -8.15]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Pakusari",
+        "REMARK": "Kecamatan",
+        "WADMKC": "PAKUSARI",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.24",
+        "kode_bmkg": "35.09.24"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.7, -8.15], [113.85, -8.15], [113.85, -8.275], [113.7, -8.275], [113.7, -8.15]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Panti",
+        "REMARK": "Kecamatan",
+        "WADMKC": "PANTI",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.14",
+        "kode_bmkg": "35.09.14"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.85, -8.15], [114.0, -8.15], [114.0, -8.275], [113.85, -8.275], [113.85, -8.15]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Patrang",
+        "REMARK": "Kecamatan",
+        "WADMKC": "PATRANG",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.20",
+        "kode_bmkg": "35.09.20"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[114.0, -8.15], [114.15, -8.15], [114.15, -8.275], [114.0, -8.275], [114.0, -8.15]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Puger",
+        "REMARK": "Kecamatan",
+        "WADMKC": "PUGER",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.08",
+        "kode_bmkg": "35.09.08"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.25, -8.275], [113.4, -8.275], [113.4, -8.4], [113.25, -8.4], [113.25, -8.275]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Rambipuji",
+        "REMARK": "Kecamatan",
+        "WADMKC": "RAMBIPUJI",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.13",
+        "kode_bmkg": "35.09.13"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.4, -8.275], [113.55, -8.275], [113.55, -8.4], [113.4, -8.4], [113.4, -8.275]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Semboro",
+        "REMARK": "Kecamatan",
+        "WADMKC": "SEMBORO",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.07",
+        "kode_bmkg": "35.09.07"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.55, -8.275], [113.7, -8.275], [113.7, -8.4], [113.55, -8.4], [113.55, -8.275]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Silo",
+        "REMARK": "Kecamatan",
+        "WADMKC": "SILO",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.30",
+        "kode_bmkg": "35.09.30"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.7, -8.275], [113.85, -8.275], [113.85, -8.4], [113.7, -8.4], [113.7, -8.275]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Sukorambi",
+        "REMARK": "Kecamatan",
+        "WADMKC": "SUKORAMBI",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.15",
+        "kode_bmkg": "35.09.15"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.85, -8.275], [114.0, -8.275], [114.0, -8.4], [113.85, -8.4], [113.85, -8.275]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Sukowono",
+        "REMARK": "Kecamatan",
+        "WADMKC": "SUKOWONO",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.29",
+        "kode_bmkg": "35.09.29"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[114.0, -8.275], [114.15, -8.275], [114.15, -8.4], [114.0, -8.4], [114.0, -8.275]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Sumberbaru",
+        "REMARK": "Kecamatan",
+        "WADMKC": "SUMBERBARU",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.03",
+        "kode_bmkg": "35.09.03"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.25, -8.4], [113.4, -8.4], [113.4, -8.525], [113.25, -8.525], [113.25, -8.4]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Sumberjambe",
+        "REMARK": "Kecamatan",
+        "WADMKC": "SUMBERJAMBE",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.31",
+        "kode_bmkg": "35.09.31"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.4, -8.4], [113.55, -8.4], [113.55, -8.525], [113.4, -8.525], [113.4, -8.4]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Sumbersari",
+        "REMARK": "Kecamatan",
+        "WADMKC": "SUMBERSARI",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.21",
+        "kode_bmkg": "35.09.21"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.55, -8.4], [113.7, -8.4], [113.7, -8.525], [113.55, -8.525], [113.55, -8.4]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Tanggul",
+        "REMARK": "Kecamatan",
+        "WADMKC": "TANGGUL",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.06",
+        "kode_bmkg": "35.09.06"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.7, -8.4], [113.85, -8.4], [113.85, -8.525], [113.7, -8.525], [113.7, -8.4]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Tempurejo",
+        "REMARK": "Kecamatan",
+        "WADMKC": "TEMPUREJO",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.18",
+        "kode_bmkg": "35.09.18"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.85, -8.4], [114.0, -8.4], [114.0, -8.525], [113.85, -8.525], [113.85, -8.4]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Umbulsari",
+        "REMARK": "Kecamatan",
+        "WADMKC": "UMBULSARI",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.05",
+        "kode_bmkg": "35.09.05"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[114.0, -8.4], [114.15, -8.4], [114.15, -8.525], [114.0, -8.525], [114.0, -8.4]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAMOBJ": "Wuluhan",
+        "REMARK": "Kecamatan",
+        "WADMKC": "WULUHAN",
+        "WADMKK": "JEMBER",
+        "WADMPR": "JAWA TIMUR",
+        "kode": "35.09.11",
+        "kode_bmkg": "35.09.11"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[113.25, -8.525], [113.4, -8.525], [113.4, -8.65], [113.25, -8.65], [113.25, -8.525]]]
+      }
+    }
+  ]
+}

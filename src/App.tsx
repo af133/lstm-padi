@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import * as tf from "@tensorflow/tfjs";
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp } from "firebase/firestore";
-import {getFirebaseConfig as FirebaseConfig} from "./firebase/Firebase";
-import {KecamatanList,GEOJSONKodeKecamatan,BMKG_DESA_MAP} from "./dataKecamatan/KecamatanList";
-// ----- Firebase init -----
-const env: any = (import.meta as any).env || {};
-const firebase = FirebaseConfig();
-const fbApp = initializeApp(firebase);
-const db = getFirestore(fbApp);
+import { KecamatanList, GEOJSONKodeKecamatan } from "./dataKecamatan/KecamatanList";
+import {
+  ModelInputMode,
+  FeatureName,
+  KecamatanRow,
+  KANDIDAT_FEATURES,
+  LSTM_TIMESTEP_FEATURES,
+  makeInitialFeatures,
+  heuristicPredict
+} from "./lstm/lstm";
+import { useLstmModel } from "./lstm/useLstmModel";
+import { useBmkgFirestore } from "./firebase/useBmkgFirestore";
 
 // ----- Types -----
 type KecamatanFeatureProps = {
@@ -26,7 +28,7 @@ type KecamatanFeatureProps = {
 type AdministrativeProps = Partial<KecamatanFeatureProps> & Record<string, any>;
 type KecamatanFC = GeoJSON.FeatureCollection<any, AdministrativeProps>;
 type HarvestStatus = "aman" | "waspada" | "kritis";
-type ModelInputMode = "sequence_3x12" | "flat_16";
+
 
 const STATUS_META: Record<HarvestStatus, { label: string; color: string; stroke: string; bg: string; text: string; desc: string }> = {
   aman: {
@@ -55,43 +57,8 @@ const STATUS_META: Record<HarvestStatus, { label: string; color: string; stroke:
   }
 };
 
-const KANDIDAT_FEATURES = [
-  "temp", "humidity", "windspeed", "dew",
-  "tanam bulan lalu", "luas tanam komoditi",
-  "lap tanam akhir bulan",
-  "jumlah_pupuk",
-  "bulan_sin", "bulan_cos",
-  "luas tanam", "hist_mean_panen_kec",
-  "panen_lag_1", "panen_lag_2",
-  "tanam_lag_1", "tanam_lag_2"
-] as const;
-type FeatureName = typeof KANDIDAT_FEATURES[number];
 
-const LSTM_TIMESTEP_FEATURES = [
-  "temp", "humidity", "windspeed", "dew",
-  "tanam", "luas_tanam_komoditi", "lap_tanam",
-  "jumlah_pupuk", "bulan_sin", "bulan_cos",
-  "luas_tanam", "panen_ref"
-] as const;
 
-const modelOutputMode = String(env.VITE_MODEL_OUTPUT_MODE || "auto").toLowerCase();
-const modelOutputMultiplier = Number(env.VITE_MODEL_OUTPUT_MULTIPLIER || 1);
-const modelOutputOffset = Number(env.VITE_MODEL_OUTPUT_OFFSET || 0);
-
-type KecamatanRow = {
-  kode: string;
-  nama: string;
-  kecamatan: string;
-  lat: number;
-  lon: number;
-  features: Record<FeatureName, number>;
-  prediksi: number;
-  confidence: number;
-  trend: "naik" | "stabil" | "turun";
-  luasHa: number;
-};
-
-// 31 Kecamatan Jember
 
 const KEC_NAME_TO_CODE = Object.fromEntries(
   KecamatanList.map((k) => [k.nama.toUpperCase().replace(/\s+/g, " ").trim(), k.kode])
@@ -141,129 +108,13 @@ function centroidFromGeometry(geometry?: any) {
 
 
 
-function bulanSinCos(date = new Date()) {
-  const m = date.getMonth() + 1;
-  const angle = (2 * Math.PI * m) / 12;
-  return { sin: Math.sin(angle), cos: Math.cos(angle) };
-}
 
-function shiftedBulanSinCos(offset: number) {
-  const d = new Date();
-  d.setMonth(d.getMonth() + offset);
-  return bulanSinCos(d);
-}
-
-function inferModelInputMode(model: tf.LayersModel): ModelInputMode {
-  const shape = (model.inputs?.[0] as any)?.shape || (model as any).inputShape;
-  if (Array.isArray(shape) && shape.length === 3 && shape[1] === 3 && shape[2] === 12) return "sequence_3x12";
-  return "flat_16";
-}
-
-function modelShapeLabel(model: tf.LayersModel) {
-  const shape = (model.inputs?.[0] as any)?.shape || (model as any).inputShape;
-  return Array.isArray(shape) ? `[${shape.map((v) => v ?? "null").join(", ")}]` : "unknown";
-}
-
-function buildLstmSequence(f: Record<FeatureName, number>) {
-  const m2 = shiftedBulanSinCos(-2);
-  const m1 = shiftedBulanSinCos(-1);
-  const m0 = { sin: f.bulan_sin, cos: f.bulan_cos };
-  const row = (
-    tanam: number,
-    lapTanam: number,
-    luasTanam: number,
-    panenRef: number,
-    month: { sin: number; cos: number }
-  ) => [
-    f.temp,
-    f.humidity,
-    f.windspeed,
-    f.dew,
-    tanam,
-    f["luas tanam komoditi"],
-    lapTanam,
-    f.jumlah_pupuk,
-    Number(month.sin.toFixed(4)),
-    Number(month.cos.toFixed(4)),
-    luasTanam,
-    panenRef
-  ];
-
-  return [
-    row(f.tanam_lag_2, f.tanam_lag_2, f.tanam_lag_2, f.panen_lag_2, m2),
-    row(f.tanam_lag_1, f.tanam_lag_1, f.tanam_lag_1, f.panen_lag_1, m1),
-    row(f["tanam bulan lalu"], f["lap tanam akhir bulan"], f["luas tanam"], f.hist_mean_panen_kec, m0)
-  ];
-}
-
-function buildModelInputTensor(f: Record<FeatureName, number>, mode: ModelInputMode) {
-  if (mode === "sequence_3x12") return tf.tensor3d([buildLstmSequence(f)], [1, 3, 12]);
-  return tf.tensor2d([KANDIDAT_FEATURES.map((k) => f[k] ?? 0)], [1, KANDIDAT_FEATURES.length]);
-}
-
-function transformModelOutput(raw: number, row: KecamatanRow, fallbackTon: number) {
-  if (!Number.isFinite(raw)) return fallbackTon;
-  const calibrated = raw * (Number.isFinite(modelOutputMultiplier) ? modelOutputMultiplier : 1) +
-    (Number.isFinite(modelOutputOffset) ? modelOutputOffset : 0);
-  if (modelOutputMode === "ton") return Math.max(0, calibrated);
-  if (modelOutputMode === "ton_per_ha") return Math.max(0, calibrated * Math.max(1, row.luasHa));
-  if (modelOutputMode === "scaled") return Math.max(0, calibrated);
-  if (calibrated > 80) return Math.max(0, calibrated);
-  if (calibrated > 0 && calibrated <= 15) return Math.max(0, calibrated * Math.max(1, row.luasHa));
-  if (calibrated > 15 && calibrated <= 80) return Math.max(0, calibrated * 12);
-  return fallbackTon;
-}
-
-function makeInitialFeatures(nama: string, idx: number): Record<FeatureName, number> {
-  const { sin, cos } = bulanSinCos();
-  const baseLuas = 110 + (idx % 9) * 31 + (nama.length * 3.7);
-  const hist = 420 + Math.sin(idx*0.73)*90 + (idx%3)*25;
-  return {
-    "temp": 27.2 + Math.sin(idx)*1.4,
-    "humidity": 77 + (idx%5)*2 - 3,
-    "windspeed": 4.3 + (idx%7)*0.5,
-    "dew": 22.1 + (idx%4)*0.6,
-    "tanam bulan lalu": Math.round(baseLuas * 0.82),
-    "luas tanam komoditi": Math.round(baseLuas * 0.93),
-    "lap tanam akhir bulan": Math.round(baseLuas * 0.88),
-    "jumlah_pupuk": Math.round(120 + idx*5.2),
-    "bulan_sin": Number(sin.toFixed(4)),
-    "bulan_cos": Number(cos.toFixed(4)),
-    "luas tanam": Math.round(baseLuas),
-    "hist_mean_panen_kec": Number(hist.toFixed(1)),
-    "panen_lag_1": Number((hist * (0.93 + (idx%4)*0.02)).toFixed(1)),
-    "panen_lag_2": Number((hist * (0.88 + (idx%3)*0.015)).toFixed(1)),
-    "tanam_lag_1": Math.round(baseLuas * 0.96),
-    "tanam_lag_2": Math.round(baseLuas * 0.91),
-  };
-}
-
-function heuristicPredict(f: Record<FeatureName, number>) {
-  // produktivitas baseline ~4.8 ton/ha adjusting cuaca
-  const luas = f["luas tanam"];
-  const prodBase = 4.65 + (f["jumlah_pupuk"] - 120) * 0.0045;
-  const tempAdj = 1 + (f.temp - 27) * 0.012 - Math.max(0, f.temp - 31)*0.04;
-  const humAdj = 1 + (f.humidity - 78) * 0.003;
-  const windAdj = 1 - Math.max(0, f.windspeed - 7) * 0.018;
-  const lagBoost = (f.panen_lag_1 + f.panen_lag_2) / (2 * Math.max(350, f.hist_mean_panen_kec));
-  const seasonal = 1 + f.bulan_sin * 0.06;
-  const produktivitas = prodBase * tempAdj * humAdj * windAdj * seasonal * (0.88 + lagBoost*0.14);
-  const ton = luas * Math.max(2.1, produktivitas);
-  return ton;
-}
 
 export default function App() {
   const [geo, setGeo] = useState<KecamatanFC | null>(null);
-  const [model, setModel] = useState<tf.LayersModel | null>(null);
-  const [modelStatus, setModelStatus] = useState<"loading"|"ready"|"fallback">("loading");
-  const [modelInputMode, setModelInputMode] = useState<ModelInputMode>("flat_16");
-  const [loadedModelShape, setLoadedModelShape] = useState("belum terbaca");
   const [rows, setRows] = useState<KecamatanRow[]>([]);
   const [selectedKode, setSelectedKode] = useState<string>("35.09.19");
   const [search, setSearch] = useState("");
-  const [syncing, setSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
-  const [weatherLog, setWeatherLog] = useState<any[]>([]);
   const [geoSource, setGeoSource] = useState("memuat layer administrasi");
   const [selectedLayerInfo, setSelectedLayerInfo] = useState<{
     namaWilayah: string;
@@ -273,6 +124,21 @@ export default function App() {
   } | null>(null);
   const mapRef = useRef<L.Map|null>(null);
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
+
+  // Custom hooks for LSTM model loading and weather synchronization
+  const {
+    modelStatus,
+    modelInputMode,
+    loadedModelShape,
+    runPrediction
+  } = useLstmModel(rows, setRows);
+
+  const {
+    syncing,
+    lastSync,
+    weatherLog,
+    syncBmkgToFirestore
+  } = useBmkgFirestore(setRows, runPrediction);
 
   // load geojson
   useEffect(() => {
@@ -301,25 +167,7 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-  // load model
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const m = await tf.loadLayersModel("/model/model.json");
-        if (cancelled) return;
-        const mode = inferModelInputMode(m);
-        setModelInputMode(mode);
-        setLoadedModelShape(modelShapeLabel(m));
-        setModel(m);
-        setModelStatus("ready");
-      } catch (e) {
-        console.warn("Model load gagal, fallback heuristic", e);
-        setModelStatus("fallback");
-      }
-    })();
-    return () => { cancelled = true };
-  }, []);
+
 
   // init rows
   useEffect(() => {
@@ -366,144 +214,7 @@ export default function App() {
 
   const selectedRow = rows.find(r=>r.kode===selectedKode) || rows[0];
 
-  // predict with model
-  const runPrediction = async (targetKode?: string) => {
-    const targets = targetKode ? rows.filter(r=>r.kode===targetKode) : rows;
-    if (!targets.length) return;
-    const updated = [...rows];
-    for (const t of targets) {
-      let y = 0;
-      const fallback = heuristicPredict(t.features);
-      if (model && modelStatus==="ready") {
-        try {
-          const tensor = buildModelInputTensor(t.features, modelInputMode);
-          const out = model.predict(tensor) as tf.Tensor;
-          const val = (await out.data())[0];
-          tensor.dispose(); out.dispose();
-          y = transformModelOutput(val, t, fallback);
-        } catch {
-          y = fallback;
-        }
-      } else {
-        y = fallback;
-      }
-      const idx = updated.findIndex(u=>u.kode===t.kode);
-      if (idx>=0) {
-        updated[idx] = { ...updated[idx], prediksi: Number(y.toFixed(1)), confidence: Math.min(0.97, 0.78 + Math.random()*0.18) };
-      }
-    }
-    setRows(updated);
-  };
 
-  // first prediction after model ready
-  useEffect(()=>{ if(rows.length && modelStatus!=="loading"){ runPrediction(); } }, [modelStatus, rows.length===31]);
-
-  // BMKG sync
-  const syncBmkgToFirestore = async () => {
-    setSyncing(true);
-    const results: any[] = [];
-    const now = new Date();
-    try {
-      for (const kec of KecamatanList) {
-        const desaCodes = BMKG_DESA_MAP[kec.kode] || [];
-        let temps:number[] = [];
-        let hums:number[] = [];
-        let ws:number[] = [];
-        for (const adm4Raw of desaCodes) {
-          const adm4 = adm4Raw.replace(/\./g,'');
-          // BMKG expects like 35.09.17.2001 -> 3509172001 ?
-          // API: https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.09.17.2001 ?
-          // kita coba dua format
-          let fetched = false;
-          for (const codeTry of [adm4Raw, adm4]) {
-            try {
-              const res = await fetch(`https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=${codeTry}`, { mode: 'cors' });
-              if (!res.ok) continue;
-              const json = await res.json();
-              const cuacaArr = json?.data?.[0]?.cuaca?.flat?.() || [];
-              if (cuacaArr.length) {
-                cuacaArr.slice(0,4).forEach((c:any)=>{
-                  if (typeof c.t === 'number') temps.push(c.t);
-                  if (typeof c.hu === 'number') hums.push(c.hu);
-                  if (typeof c.ws === 'number') ws.push(c.ws);
-                });
-                fetched = true;
-                break;
-              }
-            } catch {}
-          }
-          if (!fetched) {
-            // mock
-            temps.push(26.5 + Math.random()*3);
-            hums.push(74 + Math.random()*12);
-            ws.push(2.5 + Math.random()*4);
-          }
-          await new Promise(r=>setTimeout(r, 90)); // throttle
-        }
-        const avg = (arr:number[]) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
-        const docData = {
-          kecamatan_kode: kec.kode,
-          kecamatan_nama: kec.nama,
-          kabupaten: "Jember",
-          provinsi: "Jawa Timur",
-          waktu_sync: serverTimestamp(),
-          waktu_sync_local: now.toISOString(),
-          temp_avg: avg(temps) ? Number(avg(temps)!.toFixed(2)) : null,
-          humidity_avg: avg(hums) ? Number(avg(hums)!.toFixed(1)) : null,
-          windspeed_avg: avg(ws) ? Number(avg(ws)!.toFixed(2)) : null,
-          sample_count: temps.length,
-          source: "bmkg.go.id/publik/prakiraan-cuaca",
-          desa_codes: desaCodes
-        };
-        try {
-          await addDoc(collection(db, "cuaca_jember"), docData);
-        } catch(e) {
-          console.warn("firestore write fail", e);
-        }
-        results.push(docData);
-        // update rows features temp/humidity/windspeed
-        setRows(prev => prev.map(r => r.kode===kec.kode ? ({
-          ...r,
-          features: {
-            ...r.features,
-            temp: docData.temp_avg ?? r.features.temp,
-            humidity: docData.humidity_avg ?? r.features.humidity,
-            windspeed: docData.windspeed_avg ?? r.features.windspeed,
-            dew: Number(((docData.temp_avg ?? r.features.temp) - (100-(docData.humidity_avg ?? r.features.humidity))/5).toFixed(1))
-          }
-        }) : r));
-      }
-      setLastSync(now);
-      setWeatherLog(results.reverse().slice(0,10));
-      // re-run prediction
-      setTimeout(()=>runPrediction(), 550);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  // load last firestore logs
-  useEffect(()=> {
-    (async ()=>{
-      try {
-        const q = query(collection(db, "cuaca_jember"), orderBy("waktu_sync", "desc"), limit(12));
-        const snap = await getDocs(q);
-        const d:any[] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (d.length) {
-          setWeatherLog(d);
-          const ts:any = d[0].waktu_sync;
-          if (ts?.toDate) setLastSync(ts.toDate());
-          else if (d[0].waktu_sync_local) setLastSync(new Date(d[0].waktu_sync_local));
-        }
-      } catch {}
-    })();
-  }, []);
-
-  // auto sync every 3 jam
-  useEffect(()=>{
-    const id = setInterval(()=>{ syncBmkgToFirestore(); }, 3 * 60 * 60 * 1000);
-    return ()=>clearInterval(id);
-  }, []);
 
   const totals = useMemo(()=>{
     const tot = rows.reduce((s,r)=>s+r.prediksi,0);
