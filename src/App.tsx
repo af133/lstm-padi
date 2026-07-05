@@ -378,9 +378,9 @@ export default function App() {
             <span className={`px-2.5 py-1 rounded-full border ${modelStatus === "ready" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : modelStatus === "fallback" ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-slate-100 border-slate-200 text-slate-500"}`}>
               Model: {modelStatus === "ready" ? "TensorFlow.js ✔" : modelStatus === "fallback" ? "Heuristik" : "memuat…"}
             </span>
-            <span className="text-slate-500 hidden md:inline">
+            {/* <span className="text-slate-500 hidden md:inline">
               {modelInputMode === "sequence_3x16" ? "LSTM 3x16" : "Flat 16"} • shape {loadedModelShape} • Firestore Live
-            </span>
+            </span> */}
             {isAuthenticated ? (
               <button
                 onClick={() => setCurrentPage("admin")}
