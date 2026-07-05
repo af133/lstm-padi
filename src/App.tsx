@@ -365,7 +365,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f6f8f4] text-slate-800">
-      <header className="sticky top-0 z-40 backdrop-blur bg-[#f6f8f4]/85 border-b border-emerald-900/10">
+      <header className="sticky top-0 z-900 backdrop-blur bg-[#f6f8f4]/85 border-b border-emerald-900/10">
         <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 py-4 flex flex-wrap items-center gap-4 justify-between">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-600 to-green-700 text-white flex items-center justify-center font-black shadow shadow-emerald-700/25">SJ</div>
