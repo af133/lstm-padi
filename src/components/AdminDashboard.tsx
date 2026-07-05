@@ -2,7 +2,9 @@ import React, { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { KecamatanList } from "../dataKecamatan/KecamatanList";
 import { KANDIDAT_FEATURES, FEATURE_LABELS, FeatureName, KecamatanRow, makeInitialFeatures } from "../lstm/lstm";
-import { saveKecamatanFeatures } from "../firebase/firebase";
+import { saveKecamatanFeatures, deleteKecamatanFeatures } from "../firebase/firebase";
+import { generateSampleData, deleteAllData, addSampleDataToFirebase, exportToCSV, exportToExcel, downloadImportTemplate, parseExcelWithTimestamp, filterByDateRange, filterByKecamatan, getLatestDataPerKecamatan } from "../utils/adminUtils";
+import { Trash2, Download, Upload, RefreshCw } from "lucide-react";
 
 type AdminDashboardProps = {
   rows: KecamatanRow[];
@@ -30,7 +32,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [excelFileName, setExcelFileName] = useState("");
   const [importingExcel, setImportingExcel] = useState(false);
 
+  // Filter and search state
+  const [searchKecamatan, setSearchKecamatan] = useState("");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [addingSample, setAddingSample] = useState(false);
+
   const selectedRow = rows.find((r) => r.kode === selectedKode);
+
+  // Filtered and searched rows
+  const filteredRows = useMemo(() => {
+    let filtered = [...rows];
+
+    // Filter by kecamatan name/kode
+    if (searchKecamatan.trim()) {
+      filtered = filterByKecamatan(filtered, searchKecamatan);
+    }
+
+    // Filter by date range
+    if (filterStartDate || filterEndDate) {
+      const start = filterStartDate ? new Date(filterStartDate) : new Date("2000-01-01");
+      const end = filterEndDate ? new Date(filterEndDate) : new Date();
+      filtered = filterByDateRange(filtered, start, end);
+    }
+
+    return filtered;
+  }, [rows, searchKecamatan, filterStartDate, filterEndDate]);
 
   // ─── Save single kecamatan features ───
   const handleSave = async () => {
@@ -46,6 +76,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } finally {
       setSaving(false);
       setTimeout(() => setStatusMsg(null), 4000);
+    }
+  };
+
+  // ─── Delete single row ───
+  const handleDeleteRow = async (kode: string) => {
+    if (!confirm(`Hapus data ${KecamatanList.find(k => k.kode === kode)?.nama}?`)) return;
+    try {
+      await deleteKecamatanFeatures(kode);
+      setRows(prev => prev.filter(r => r.kode !== kode));
+      setStatusMsg({ type: "success", text: "Data berhasil dihapus!" });
+      setTimeout(() => setStatusMsg(null), 3000);
+    } catch (err: any) {
+      setStatusMsg({ type: "error", text: `Gagal: ${err.message}` });
+    }
+  };
+
+  // ─── Delete all data ───
+  const handleDeleteAllData = async () => {
+    if (deleteConfirmInput !== "HAPUS SEMUA DATA") {
+      setStatusMsg({ type: "error", text: "Konfirmasi tidak benar!" });
+      return;
+    }
+    setDeletingAll(true);
+    try {
+      const success = await deleteAllData(deleteConfirmInput);
+      if (success) {
+        setRows([]);
+        setStatusMsg({ type: "success", text: "Semua data berhasil dihapus!" });
+        setShowDeleteConfirm(false);
+        setDeleteConfirmInput("");
+      }
+    } catch (err: any) {
+      setStatusMsg({ type: "error", text: `Gagal: ${err.message}` });
+    } finally {
+      setDeletingAll(false);
+      setTimeout(() => setStatusMsg(null), 3000);
+    }
+  };
+
+  // ─── Add sample data ───
+  const handleAddSampleData = async () => {
+    setAddingSample(true);
+    try {
+      const sampleData = generateSampleData();
+      const count = await addSampleDataToFirebase(sampleData);
+      setRows(sampleData);
+      setStatusMsg({ type: "success", text: `${count} sample data berhasil ditambahkan!` });
+      runPrediction();
+    } catch (err: any) {
+      setStatusMsg({ type: "error", text: `Gagal: ${err.message}` });
+    } finally {
+      setAddingSample(false);
+      setTimeout(() => setStatusMsg(null), 3000);
     }
   };
 
@@ -71,30 +154,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const wb = XLSX.read(data, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(ws);
-
-        // Map Excel rows to our feature format
-        const parsed: Record<string, number>[] = [];
-        for (const row of jsonData) {
-          const kode = String(row.kode || row.Kode || row.KODE || "").trim();
-          const kecName = String(row.kecamatan || row.Kecamatan || row.KECAMATAN || "").trim();
-
-          // Find matching kecamatan
-          const match = KecamatanList.find(
-            (k) => k.kode === kode || k.nama.toUpperCase() === kecName.toUpperCase()
-          );
-          if (!match) continue;
-
-          const features: Record<string, number> = { _kode: 0, _nama: 0 };
-          (features as any)._kode = match.kode;
-          (features as any)._nama = match.nama;
-
-          for (const fn of KANDIDAT_FEATURES) {
-            // Try exact match, then common aliases
-            const val = row[fn] ?? row[fn.replace(/ /g, "_")] ?? row[fn.replace(/_/g, " ")];
-            features[fn] = val !== undefined && val !== "" ? Number(val) : 0;
-          }
-          parsed.push(features);
-        }
+        const parsed = parseExcelWithTimestamp(jsonData);
         setExcelPreview(parsed);
       } catch (err) {
         console.error("Excel parse error:", err);
@@ -181,6 +241,91 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       <main className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-10 py-7 space-y-6">
+        {/* Status Message */}
+        {statusMsg && (
+          <div className={`px-4 py-3 rounded-lg font-medium text-sm ${statusMsg.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-800 border border-rose-200"}`}>
+            {statusMsg.text}
+          </div>
+        )}
+
+        {/* ─── Data Management ─── */}
+        <section className="rounded-[22px] border border-amber-900/10 bg-gradient-to-br from-white to-amber-50/40 p-5 shadow-sm">
+          <div className="font-[700] text-amber-950 text-[16px]">⚙️ Manajemen Data</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+            <button disabled={addingSample} onClick={handleAddSampleData} className="px-4 py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[13px] font-[650] disabled:opacity-60 transition-all shadow-sm flex items-center justify-center gap-2">
+              <RefreshCw className="w-4 h-4" /> {addingSample ? "Menambah..." : "Tambah Sample Data"}
+            </button>
+            <button onClick={() => exportToExcel(rows)} className="px-4 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white text-[13px] font-[650] transition-all shadow-sm flex items-center justify-center gap-2">
+              <Download className="w-4 h-4" /> Export Excel
+            </button>
+            <button onClick={downloadImportTemplate} className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-[650] transition-all shadow-sm flex items-center justify-center gap-2">
+              <Download className="w-4 h-4" /> Template Import
+            </button>
+          </div>
+          {!showDeleteConfirm ? (
+            <button onClick={() => setShowDeleteConfirm(true)} className="mt-3 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-[650] transition-all shadow-sm flex items-center gap-2 w-full sm:w-auto">
+              <Trash2 className="w-4 h-4" /> Hapus Semua Data
+            </button>
+          ) : (
+            <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200">
+              <p className="text-[12px] text-rose-900 mb-2">⚠️ Konfirmasi: Ketik "HAPUS SEMUA DATA" untuk melanjutkan</p>
+              <input type="text" value={deleteConfirmInput} onChange={(e) => setDeleteConfirmInput(e.target.value)} placeholder="HAPUS SEMUA DATA" className="w-full px-3 py-2 rounded-lg border border-rose-300 text-[13px] mb-2" />
+              <div className="flex gap-2">
+                <button disabled={deletingAll} onClick={handleDeleteAllData} className="flex-1 px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-[600] disabled:opacity-60">
+                  {deletingAll ? "Menghapus..." : "Konfirmasi Hapus"}
+                </button>
+                <button onClick={() => {setShowDeleteConfirm(false); setDeleteConfirmInput("");}} className="flex-1 px-3 py-2 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-800 text-[12px] font-[600]">
+                  Batal
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ─── Filter & Search Table ─── */}
+        <section className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="font-[700] text-slate-950 text-[16px] mb-4">📋 Data Table & Filter</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <input type="text" placeholder="Cari kecamatan..." value={searchKecamatan} onChange={(e) => setSearchKecamatan(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-300 text-[13px]" />
+            <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-300 text-[13px]" />
+            <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-300 text-[13px]" />
+          </div>
+          <div className="overflow-x-auto max-h-[500px] rounded-xl border border-slate-200">
+            <table className="min-w-full text-[12px]">
+              <thead className="bg-slate-100 text-slate-700 sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-2">Kecamatan</th>
+                  <th className="text-right px-3 py-2">Prediksi (ton)</th>
+                  <th className="text-right px-3 py-2">Confidence</th>
+                  <th className="text-center px-3 py-2">Tanggal Update</th>
+                  <th className="text-center px-3 py-2">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRows.map((row) => (
+                  <tr key={row.kode} className="border-t border-slate-200 hover:bg-slate-50">
+                    <td className="px-3 py-2 font-[600]">{row.nama}</td>
+                    <td className="text-right px-3 py-2">{row.prediksi.toLocaleString("id-ID", {maximumFractionDigits: 0})}</td>
+                    <td className="text-right px-3 py-2">{(row.confidence * 100).toFixed(1)}%</td>
+                    <td className="text-center px-3 py-2 text-[11px] text-slate-600">{row.timestamp ? new Date(row.timestamp).toLocaleDateString("id-ID") : "-"}</td>
+                    <td className="text-center px-3 py-2">
+                      <button onClick={() => handleDeleteRow(row.kode)} className="px-2 py-1 rounded bg-rose-100 hover:bg-rose-200 text-rose-700 text-[11px] font-[600] transition-all flex items-center gap-1 mx-auto">
+                        <Trash2 className="w-3 h-3" /> Hapus
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredRows.length === 0 && (
+              <div className="text-center py-8 text-slate-500 text-[13px]">Tidak ada data ditemukan</div>
+            )}
+          </div>
+          <div className="mt-3 text-[12px] text-slate-600">
+            Menampilkan <strong>{filteredRows.length}</strong> dari <strong>{rows.length}</strong> kecamatan
+          </div>
+        </section>
+
         {/* ─── BMKG Sync Card ─── */}
         <section className="rounded-[22px] border border-sky-900/10 bg-gradient-to-br from-white to-sky-50/60 p-5 shadow-sm">
           <div className="font-[700] text-sky-950 text-[16px]">🛰️ Sinkronisasi Cuaca BMKG → Firestore</div>

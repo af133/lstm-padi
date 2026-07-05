@@ -13,6 +13,7 @@ import {
 import { useLstmModel } from "./lstm/useLstmModel";
 import { useBmkgFirestore } from "./firebase/useBmkgFirestore";
 import { fetchKecamatanFeatures } from "./firebase/firebase";
+import { getLatestDataPerKecamatan } from "./utils/adminUtils";
 import { AuthModal } from "./components/AuthModal";
 import { PredictionChart } from "./components/PredictionChart";
 import { AdminDashboard } from "./components/AdminDashboard";
