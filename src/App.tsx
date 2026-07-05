@@ -5,19 +5,12 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp } from "firebase/firestore";
-
+import {getFirebaseConfig as FirebaseConfig} from "./firebase/Firebase";
+import {KecamatanList,GEOJSONKodeKecamatan,BMKG_DESA_MAP} from "./dataKecamatan/KecamatanList";
 // ----- Firebase init -----
 const env: any = (import.meta as any).env || {};
-const firebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY,
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN ,
-  projectId: env.VITE_FIREBASE_PROJECT_ID ,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET ,
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID ,
-  appId: env.VITE_FIREBASE_APP_ID ,
-  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID
-};
-const fbApp = initializeApp(firebaseConfig);
+const firebase = FirebaseConfig();
+const fbApp = initializeApp(firebase);
 const db = getFirestore(fbApp);
 
 // ----- Types -----
@@ -99,77 +92,12 @@ type KecamatanRow = {
 };
 
 // 31 Kecamatan Jember
-const KEC_LIST = [
-  { kode:"35.09.17", nama:"Ajung" },
-  { kode:"35.09.12", nama:"Ambulu" },
-  { kode:"35.09.22", nama:"Arjasa" },
-  { kode:"35.09.10", nama:"Balung" },
-  { kode:"35.09.09", nama:"Bangsalsari" },
-  { kode:"35.09.04", nama:"Gumukmas" },
-  { kode:"35.09.25", nama:"Jelbuk" },
-  { kode:"35.09.16", nama:"Jenggawah" },
-  { kode:"35.09.01", nama:"Jombang" },
-  { kode:"35.09.27", nama:"Kalisat" },
-  { kode:"35.09.19", nama:"Kaliwates" },
-  { kode:"35.09.02", nama:"Kencong" },
-  { kode:"35.09.28", nama:"Ledokombo" },
-  { kode:"35.09.26", nama:"Mayang" },
-  { kode:"35.09.23", nama:"Mumbulsari" },
-  { kode:"35.09.24", nama:"Pakusari" },
-  { kode:"35.09.14", nama:"Panti" },
-  { kode:"35.09.20", nama:"Patrang" },
-  { kode:"35.09.08", nama:"Puger" },
-  { kode:"35.09.13", nama:"Rambipuji" },
-  { kode:"35.09.07", nama:"Semboro" },
-  { kode:"35.09.30", nama:"Silo" },
-  { kode:"35.09.15", nama:"Sukorambi" },
-  { kode:"35.09.29", nama:"Sukowono" },
-  { kode:"35.09.03", nama:"Sumberbaru" },
-  { kode:"35.09.31", nama:"Sumberjambe" },
-  { kode:"35.09.21", nama:"Sumbersari" },
-  { kode:"35.09.06", nama:"Tanggul" },
-  { kode:"35.09.18", nama:"Tempurejo" },
-  { kode:"35.09.05", nama:"Umbulsari" },
-  { kode:"35.09.11", nama:"Wuluhan" },
-];
 
 const KEC_NAME_TO_CODE = Object.fromEntries(
-  KEC_LIST.map((k) => [k.nama.toUpperCase().replace(/\s+/g, " ").trim(), k.kode])
+  KecamatanList.map((k) => [k.nama.toUpperCase().replace(/\s+/g, " ").trim(), k.kode])
 );
-const KEC_CODE_SET = new Set(KEC_LIST.map((k) => k.kode));
-const GEOJSON_KEC_CODE_TO_OFFICIAL: Record<string, string> = {
-  "010": "35.09.02",
-  "020": "35.09.04",
-  "030": "35.09.08",
-  "040": "35.09.11",
-  "050": "35.09.12",
-  "060": "35.09.18",
-  "070": "35.09.30",
-  "080": "35.09.26",
-  "090": "35.09.23",
-  "100": "35.09.16",
-  "110": "35.09.17",
-  "120": "35.09.13",
-  "130": "35.09.10",
-  "140": "35.09.05",
-  "150": "35.09.07",
-  "160": "35.09.01",
-  "170": "35.09.03",
-  "180": "35.09.06",
-  "190": "35.09.09",
-  "200": "35.09.14",
-  "210": "35.09.15",
-  "220": "35.09.22",
-  "230": "35.09.24",
-  "240": "35.09.27",
-  "250": "35.09.28",
-  "260": "35.09.31",
-  "270": "35.09.29",
-  "280": "35.09.25",
-  "710": "35.09.19",
-  "720": "35.09.21",
-  "730": "35.09.20"
-};
+const KEC_CODE_SET = new Set(KecamatanList.map((k) => k.kode));
+
 
 function normalizeRegionName(value?: string) {
   return (value || "").toUpperCase().replace(/\s+/g, " ").trim();
@@ -181,7 +109,7 @@ function resolveKecamatanCode(props?: AdministrativeProps) {
   if (KEC_CODE_SET.has(kode)) return kode;
   if (/^35\.09\.\d{2}/.test(kode)) return kode.slice(0, 8);
   if (/^\d{1,3}$/.test(kode)) {
-    const official = GEOJSON_KEC_CODE_TO_OFFICIAL[kode.padStart(3, "0")];
+    const official = GEOJSONKodeKecamatan[kode.padStart(3, "0")];
     if (official) return official;
   }
   const byKecamatan = KEC_NAME_TO_CODE[normalizeRegionName(props.WADMKC)];
@@ -211,40 +139,7 @@ function centroidFromGeometry(geometry?: any) {
   return { lon: sum.lng / coords.length, lat: sum.lat / coords.length };
 }
 
-// BMKG desa mapping approx – ambil 2-3 desa per kecamatan (kode adm4)
-const BMKG_DESA_MAP: Record<string, string[]> = {
-  "35.09.17": ["35.09.17.2001","35.09.17.2002","35.09.17.2003"],
-  "35.09.12": ["35.09.12.2001","35.09.12.2004","35.09.12.2007"],
-  "35.09.22": ["35.09.22.2001","35.09.22.2003"],
-  "35.09.10": ["35.09.10.2002","35.09.10.2005","35.09.10.2008"],
-  "35.09.09": ["35.09.09.2001","35.09.09.2006"],
-  "35.09.04": ["35.09.04.2001","35.09.04.2005","35.09.04.2009"],
-  "35.09.25": ["35.09.25.2001","35.09.25.2004"],
-  "35.09.16": ["35.09.16.2002","35.09.16.2005"],
-  "35.09.01": ["35.09.01.2003","35.09.01.2007","35.09.01.2010"],
-  "35.09.27": ["35.09.27.2001","35.09.27.2005"],
-  "35.09.19": ["35.09.19.1001","35.09.19.1003","35.09.19.1006"],
-  "35.09.02": ["35.09.02.2001","35.09.02.2004","35.09.02.2007"],
-  "35.09.28": ["35.09.28.2002","35.09.28.2005"],
-  "35.09.26": ["35.09.26.2001","35.09.26.2003"],
-  "35.09.23": ["35.09.23.2002","35.09.23.2006"],
-  "35.09.24": ["35.09.24.2001","35.09.24.2004"],
-  "35.09.14": ["35.09.14.2003","35.09.14.2007"],
-  "35.09.20": ["35.09.20.1002","35.09.20.1005"],
-  "35.09.08": ["35.09.08.2001","35.09.08.2004","35.09.08.2008"],
-  "35.09.13": ["35.09.13.2002","35.09.13.2005"],
-  "35.09.07": ["35.09.07.2001","35.09.07.2006"],
-  "35.09.30": ["35.09.30.2001","35.09.30.2004"],
-  "35.09.15": ["35.09.15.2001","35.09.15.2003"],
-  "35.09.29": ["35.09.29.2002","35.09.29.2005"],
-  "35.09.03": ["35.09.03.2001","35.09.03.2006","35.09.03.2010"],
-  "35.09.31": ["35.09.31.2002","35.09.31.2005"],
-  "35.09.21": ["35.09.21.1001","35.09.21.1004","35.09.21.1007"],
-  "35.09.06": ["35.09.06.2003","35.09.06.2008"],
-  "35.09.18": ["35.09.18.2001","35.09.18.2005"],
-  "35.09.05": ["35.09.05.2002","35.09.05.2006","35.09.05.2009"],
-  "35.09.11": ["35.09.11.2001","35.09.11.2004","35.09.11.2007"],
-};
+
 
 function bulanSinCos(date = new Date()) {
   const m = date.getMonth() + 1;
@@ -443,7 +338,7 @@ export default function App() {
     Object.entries(centroidBucket).forEach(([code, value]) => {
       featureIndex[code] = { lat: value.lat / value.count, lon: value.lon / value.count };
     });
-    const init: KecamatanRow[] = KEC_LIST.map((k, idx) => {
+    const init: KecamatanRow[] = KecamatanList.map((k, idx) => {
       const pos = featureIndex[k.kode] || { lat: -8.18 + (idx%6)*0.07, lon: 113.65 + Math.floor(idx/6)*0.08 };
       const feats = makeInitialFeatures(k.nama, idx);
       const predH = heuristicPredict(feats);
@@ -509,7 +404,7 @@ export default function App() {
     const results: any[] = [];
     const now = new Date();
     try {
-      for (const kec of KEC_LIST) {
+      for (const kec of KecamatanList) {
         const desaCodes = BMKG_DESA_MAP[kec.kode] || [];
         let temps:number[] = [];
         let hums:number[] = [];
@@ -939,7 +834,7 @@ export default function App() {
             </div>
             <div className="flex gap-2 text-[11.5px]">
               <button onClick={()=>runPrediction(selectedRow?.kode)} className="px-3 py-[7px] rounded-xl bg-emerald-700 text-white font-[600]">Predict</button>
-              <button onClick={()=>{ if(!selectedRow) return; const nf = makeInitialFeatures(selectedRow.nama, KEC_LIST.findIndex(k=>k.kode===selectedRow.kode)); setRows(rs=>rs.map(r=> r.kode===selectedRow.kode ? {...r, features:nf}:r)); }} className="px-3 py-[7px] rounded-xl border border-slate-300">Reset fitur</button>
+              <button onClick={()=>{ if(!selectedRow) return; const nf = makeInitialFeatures(selectedRow.nama, KecamatanList.findIndex(k=>k.kode===selectedRow.kode)); setRows(rs=>rs.map(r=> r.kode===selectedRow.kode ? {...r, features:nf}:r)); }} className="px-3 py-[7px] rounded-xl border border-slate-300">Reset fitur</button>
             </div>
           </div>
           <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
