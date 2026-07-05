@@ -26,20 +26,14 @@ export function Navigation({
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div
-            className="flex items-center gap-3 cursor-pointer"
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => onNavigate("home")}
           >
-            <div className="relative w-12 h-12 shrink-0">
-              <div
-                className="absolute inset-0 rounded-[14px] bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg rotate-[-4deg]"
-              />
-              <div
-                className="absolute inset-0 rounded-[14px] flex items-center justify-center text-white font-bold text-lg"
-                style={{ fontFamily: "'Fraunces', serif" }}
-              >
-                SJ
-              </div>
-            </div>
+            <img
+              src="/sipanen-logo.png"
+              alt="SiPanen Jember Logo"
+              className="w-12 h-12 shrink-0"
+            />
             <div>
               <div
                 className="text-lg sm:text-xl font-bold text-emerald-700 tracking-tight"

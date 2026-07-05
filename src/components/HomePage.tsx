@@ -7,63 +7,56 @@ interface HomePageProps {
 
 export function HomePage({ onNavigate, onAuthModalOpen }: HomePageProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-blue-50">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
-        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-amber-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
+    <div className="min-h-screen">
+      {/* Hero Section - Full Image Background */}
+      <section 
+        className="relative w-full h-screen bg-cover bg-center flex items-center justify-center"
+        style={{ backgroundImage: "url('/hero-rice-field.png')" }}
+      >
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent animate-subtle-zoom" />
+        
+        {/* Content overlay */}
+        <div className="relative z-10 text-center text-white px-6 sm:px-8 lg:px-12 max-w-3xl">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight drop-shadow-lg">
+            Prediksi Panen Padi dengan
+            <span className="block">AI & Machine Learning</span>
+          </h1>
 
-        <div className="relative max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-16 sm:py-24 lg:py-32">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 border border-emerald-300 mb-6">
-              <Sprout className="w-4 h-4 text-emerald-700" />
-              <span className="text-sm font-semibold text-emerald-700">Prediksi Panen Pintar</span>
-            </div>
+          <p className="text-xl sm:text-2xl text-white/90 mb-8 leading-relaxed drop-shadow-md">
+            Dashboard Web-GIS interaktif untuk memprediksi hasil panen padi di Kabupaten Jember 
+            menggunakan teknologi LSTM Deep Learning dan data cuaca real-time.
+          </p>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight">
-              Prediksi Panen Padi dengan
-              <span className="block bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
-                AI & Machine Learning
-              </span>
-            </h1>
-
-            <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto mb-8 leading-relaxed">
-              Dashboard Web-GIS interaktif untuk memprediksi hasil panen padi di Kabupaten Jember
-              menggunakan teknologi LSTM Deep Learning dan data cuaca real-time.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <button
-                onClick={() => onNavigate("peta")}
-                className="px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2"
-              >
-                Jelajahi Peta <ArrowRight className="w-5 h-5" />
-              </button>
-              <button
-                onClick={onAuthModalOpen}
-                className="px-8 py-4 rounded-xl bg-white text-emerald-700 font-semibold border-2 border-emerald-600 hover:bg-emerald-50 transition-all"
-              >
-                Login Admin
-              </button>
-            </div>
-
-            {/* Hero Image - Background with auto-scroll */}
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl h-96 mt-12 bg-cover bg-center" style={{ backgroundImage: "url('/hero-rice-field.png')" }}>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent animate-subtle-zoom" />
-              <style>{`
-                @keyframes subtle-zoom {
-                  0%, 100% { transform: scale(1) translateY(0); }
-                  50% { transform: scale(1.05) translateY(-15px); }
-                }
-                .animate-subtle-zoom {
-                  animation: subtle-zoom 8s ease-in-out infinite;
-                }
-              `}</style>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => onNavigate("peta")}
+              className="px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2"
+            >
+              Jelajahi Peta <ArrowRight className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onAuthModalOpen}
+              className="px-8 py-4 rounded-xl bg-white text-emerald-700 font-semibold hover:bg-white/90 transition-all shadow-lg"
+            >
+              Login Admin
+            </button>
           </div>
         </div>
+
+        <style>{`
+          @keyframes subtle-zoom {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+          }
+          .animate-subtle-zoom {
+            animation: subtle-zoom 20s ease-in-out infinite;
+          }
+        `}</style>
       </section>
+
+      {/* Content section - only background styling */}
+      <div className="bg-gradient-to-b from-white to-blue-50">
 
       {/* Features Section */}
       <section className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-16 sm:py-24">
@@ -320,6 +313,7 @@ export function HomePage({ onNavigate, onAuthModalOpen }: HomePageProps) {
           </div>
         </div>
       </footer>
+      </div>
 
       <style>{`
         @keyframes blob {
