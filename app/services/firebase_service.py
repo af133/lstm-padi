@@ -49,3 +49,12 @@ def delete_kecamatan_features(doc_id: str):
     url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/kecamatan_features/{doc_id}?key={api_key}"
     response = requests.delete(url)
     return response.status_code == 200
+def get_all_kecamatan_features():
+    # url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/kecamatan_features?key={api_key}&orderBy=kode asc, tahun desc, bulan desc"
+    # Coba ubah sementara menjadi tanpa orderBy
+    url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/kecamatan_features?key={api_key}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        documents = response.json().get("documents", [])
+        return documents
+    return []
