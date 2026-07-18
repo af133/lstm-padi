@@ -22,6 +22,6 @@ app.add_middleware(
 )
 app.include_router(features.router)
 
-@app.get("/")
+@app.get("/", methods=["GET", "HEAD"])
 def read_root():
     return {"message": "LSTM Padi Backend is Running"}
