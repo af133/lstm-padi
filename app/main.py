@@ -12,7 +12,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Registrasi router
 app.include_router(predict.router)
 
 @app.get("/")
