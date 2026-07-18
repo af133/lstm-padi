@@ -90,8 +90,6 @@ def sync_bmkg_data():
                     "total_desa_terhitung": {"integerValue": str(len(all_kecamatan_temps))}
                 }
             }
-            
-            # 3. Simpan ke Firestore dengan ID Kecamatan (Bukan ID Desa lagi)
             firestore_url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/cuaca_jember/{kec_code}?key={api_key}"
             requests.patch(firestore_url, json=payload)
             print(f"Berhasil update rata-rata Kecamatan: {kec_code}")
