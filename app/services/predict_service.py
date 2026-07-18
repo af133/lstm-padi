@@ -1,10 +1,13 @@
+import os
 import numpy as np
 import joblib
-from tensorflow.keras.models import load_model
+import tensorflow as tf
 
-model = load_model('app/models/model_lstm_panen_jember_tuned.h5')
-scaler_X = joblib.load('app/models/scaler_X.pkl') 
-scaler_Y = joblib.load('app/models/scaler_Y.pkl')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
+MODEL_PATH = os.path.join(BASE_DIR, 'models', 'model_lstm_panen_jember_tuned.h5')
+model = tf.keras.models.load_model(MODEL_PATH)
+scaler_X = joblib.load(os.path.join(BASE_DIR, 'models', 'scaler_X.pkl'))
+scaler_Y = joblib.load(os.path.join(BASE_DIR, 'models', 'scaler_Y.pkl'))
 
 def prepare_input(json_data):
     feature_order = [
