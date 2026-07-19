@@ -61,7 +61,9 @@ def get_all_kecamatan_features():
     return []
 def sync_bmkg_data():
     print(f"[{datetime.now()}] Memulai sinkronisasi otomatis per Kecamatan...")
-    
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+    all_features_docs = get_all_kecamatan_features()
     for kec_code, desa_list in DESA_MAPPING.items():
         all_kecamatan_temps = []
         all_kecamatan_hums = []
@@ -71,28 +73,53 @@ def sync_bmkg_data():
                 time.sleep(random.uniform(3, 5))
                 url = f"https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4={adm4}"
                 res = requests.get(url, timeout=15).json()
-                
                 if res.get('data') and res['data'][0].get('cuaca'):
                     data_cuaca = res['data'][0]['cuaca'][0]
-                    all_kecamatan_temps.append(sum([d['t'] for d in data_cuaca])/len(data_cuaca))
-                    all_kecamatan_hums.append(sum([d['hu'] for d in data_cuaca])/len(data_cuaca))
-                    all_kecamatan_winds.append(sum([d['ws'] for d in data_cuaca])/len(data_cuaca))
+                    all_kecamatan_temps.append(sum([d['t'] for d in data_cuaca]) / len(data_cuaca))
+                    all_kecamatan_hums.append(sum([d['hu'] for d in data_cuaca]) / len(data_cuaca))
+                    all_kecamatan_winds.append(sum([d['ws'] for d in data_cuaca]) / len(data_cuaca))
             except Exception as e:
                 print(f"Skip desa {adm4}: {e}")
         if all_kecamatan_temps:
+            avg_temp = round(sum(all_kecamatan_temps) / len(all_kecamatan_temps), 2)
+            avg_hum = round(sum(all_kecamatan_hums) / len(all_kecamatan_hums), 2)
+            avg_wind = round(sum(all_kecamatan_winds) / len(all_kecamatan_winds), 2)
             payload = {
                 "fields": {
                     "kecamatan_kode": {"stringValue": kec_code},
-                    "temp_avg": {"doubleValue": round(sum(all_kecamatan_temps)/len(all_kecamatan_temps), 2)},
-                    "humidity_avg": {"doubleValue": round(sum(all_kecamatan_hums)/len(all_kecamatan_hums), 2)},
-                    "windspeed_avg": {"doubleValue": round(sum(all_kecamatan_winds)/len(all_kecamatan_winds), 2)},
+                    "temp_avg": {"doubleValue": avg_temp},
+                    "humidity_avg": {"doubleValue": avg_hum},
+                    "windspeed_avg": {"doubleValue": avg_wind},
                     "waktu_sync": {"timestampValue": datetime.utcnow().isoformat() + "Z"},
                     "total_desa_terhitung": {"integerValue": str(len(all_kecamatan_temps))}
                 }
             }
             firestore_url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/cuaca_jember/{kec_code}?key={api_key}"
             requests.patch(firestore_url, json=payload)
-            print(f"Berhasil update rata-rata Kecamatan: {kec_code}")
+            print(f"Berhasil update cuaca_jember: {kec_code}")
+            for doc in all_features_docs:
+                fields = doc.get("fields", {})
+                doc_kode = fields.get("kode", {}).get("stringValue")
+                doc_bulan = int(fields.get("bulan", {}).get("integerValue", 0))
+                doc_tahun = int(fields.get("tahun", {}).get("integerValue", 0))
+                if doc_kode == kec_code and doc_bulan == current_month and doc_tahun == current_year:
+                    doc_id = doc.get("name").split('/')[-1]
+                    raw_features = fields.get("features", {}).get("mapValue", {}).get("fields", {})
+                    new_features = {}
+                    for k, v in raw_features.items():
+                        val = list(v.values())[0]
+                        new_features[k] = float(val) if isinstance(val, (int, float)) else val
+                    new_features["suhu_rata2_c"] = avg_temp
+                    new_features["kelembaban_persen"] = avg_hum
+                    update_payload = {
+                        "bulan": current_month,
+                        "tahun": current_year,
+                        "kode": kec_code,
+                        "features": new_features
+                    }
+                    if update_kecamatan_features(doc_id, update_payload):
+                        print(f"Berhasil update features untuk {kec_code} (Bulan {current_month})")
+                    break
 def start_scheduler():
     scheduler = BackgroundScheduler()
     scheduler.add_job(sync_bmkg_data, 'interval', hours=3)
