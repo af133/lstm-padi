@@ -7,4 +7,4 @@ requests
 pandas
 apscheduler
 joblib
-tensorflow==2.19.0
+tensorflow
