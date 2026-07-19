@@ -7,6 +7,6 @@ requests
 pandas>=2.0.0,<3.0.0
 apscheduler
 joblib
-scikit-learn
+scikit-learn==1.6.1
 tensorflow==2.17.0
 numpy<2.0.0
