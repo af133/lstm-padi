@@ -32,7 +32,8 @@ backend-lstm-padi/
 │   │   ├── firebase_service.py # Interaksi Firestore REST API & Scheduler Cuaca BMKG
 │   │   └── predict_service.py  # Logika pemrosesan sekuensial & prediksi LSTM
 │   └── main.py                 # Titik masuk utama aplikasi (Main entrypoint)
-├── .env                        # File konfigurasi environment (kredensial & port)
+├── .env                        # File konfigurasi environment aktual (diabaikan oleh git)
+├── .env.example                # Template konfigurasi environment (contoh/placeholder)
 ├── .gitignore                  # File daftar pengecualian Git
 ├── readme.txt                  # Dokumentasi ini (berkas panduan)
 ├── requirements.txt            # Daftar pustaka/dependensi Python
@@ -50,6 +51,22 @@ Sebelum memulai instalasi, pastikan sistem Anda telah terpasang:
 ------------------------------------------------------------------------
 3. PANDUAN INSTALASI & MENJALANKAN (DARI NOL)
 ------------------------------------------------------------------------
+
+=== PERINTAH CEPAT SEKALI JALAN (QUICK COPY-PASTE SETUP) ===
+
+Untuk menginstal dan menjalankan backend secara instan, buka terminal Anda lalu jalankan baris perintah di bawah ini sesuai sistem operasi Anda:
+
+- Untuk Linux / macOS (Bash):
+  git clone -b backend https://github.com/af133/lstm-padi.git && cd backend-lstm-padi && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && cp .env.example .env && uvicorn app.main:app --reload
+
+- Untuk Windows (PowerShell):
+  git clone -b backend https://github.com/af133/lstm-padi.git; cd backend-lstm-padi; python -m venv venv; .\venv\Scripts\Activate.ps1; pip install --upgrade pip; pip install -r requirements.txt; copy .env.example .env; uvicorn app.main:app --reload
+
+*Catatan: Setelah perintah selesai dieksekusi, harap sesuaikan isi berkas `.env` dengan kredensial Firebase dan reCAPTCHA Anda.*
+
+=============================================================
+
+Langkah-langkah detailnya:
 
 Langkah 1: Clone Repository
 Buka terminal/command prompt Anda, lalu jalankan perintah berikut:
