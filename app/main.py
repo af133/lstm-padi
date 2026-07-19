@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.api import features
+from app.api import features, predict
 from app.services.firebase_service import start_scheduler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,6 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(features.router)
+app.include_router(predict.router)
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
