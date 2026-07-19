@@ -4,8 +4,9 @@ firebase-admin
 google-cloud-firestore
 python-dotenv
 requests
-pandas
+pandas>=2.0.0,<3.0.0
 apscheduler
 joblib
-sklearn
+scikit-learn
 tensorflow-cpu==2.17.0
+numpy<2.0.0
