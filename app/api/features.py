@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.schemas.input_data import KecamatanData
-from app.services.firebase_service import save_kecamatan_features,update_kecamatan_features,delete_kecamatan_features, get_all_kecamatan_features
+from app.services.firebase_service import save_kecamatan_features,update_kecamatan_features,delete_kecamatan_features, get_all_kecamatan_features,get_cuaca_jember
 from collections import defaultdict
 router = APIRouter()
 
@@ -48,3 +48,7 @@ async def get_data_by_kecamatan():
             clean_features[key] = value
         grouped_data[kode][tahun][bulan].append(clean_features)
     return grouped_data
+@router.get("/get-cuaca-jember")
+async def get_cuaca_endpoint():
+    data = get_cuaca_jember()
+    return {"status": "success", "data": data}

@@ -59,6 +59,27 @@ def get_all_kecamatan_features():
         documents = response.json().get("documents", [])
         return documents
     return []
+def get_cuaca_jember():
+    url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/cuaca_jember?key={api_key}"
+    try:
+        response = requests.get(url)
+        if response.status_code != 200:
+            print(f"Error {response.status_code}: {response.text}")
+            return {}
+        data = response.json().get('documents', [])
+        cuaca_map = {}
+        for doc in data:
+            doc_id = doc.get('name', '').split('/')[-1]
+            fields = doc.get('fields', {})
+            cuaca_map[doc_id] = {
+                "temp_avg": float(fields.get('temp_avg', {}).get('doubleValue', 0)),
+                "humidity_avg": float(fields.get('humidity_avg', {}).get('doubleValue', 0)),
+                "windspeed_avg": float(fields.get('windspeed_avg', {}).get('doubleValue', 0)),
+            }
+        return cuaca_map
+    except Exception as e:
+        print(f"Gagal mengambil data cuaca: {e}")
+        return {}
 def sync_bmkg_data():
     print(f"[{datetime.now()}] Memulai sinkronisasi otomatis per Kecamatan...")
     current_month = datetime.now().month
