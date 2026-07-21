@@ -177,7 +177,7 @@ const KecamatanMap = ({ predictionData, featureData, weatherData }) => {
                 )}
                 {(selected.pred?.status?.toLowerCase() === 'waspada' || selected.pred?.status?.toLowerCase() === 'rawan' || selected.pred?.status?.toLowerCase() === 'kritis') && (
                   <div className={`border p-3 rounded-lg mt-2 ${selected.pred?.status?.toLowerCase() === 'rawan' || selected.pred?.status?.toLowerCase() === 'kritis' ? 'bg-red-500/10 border-red-500/50 text-red-100' : 'bg-amber-500/10 border-amber-500/50 text-amber-100'}`}>
-                    <p className="text-xs italic">⚠️ Segera lakukan tindakan penanganan di wilayah ini.</p>
+                    <p className="text-xs italic">⚠️ Segera lakukan tindakan penanganan di wilayah ini, tambahkan penyaluran pupuk.</p>
                   </div>
                 )}
               </div>
