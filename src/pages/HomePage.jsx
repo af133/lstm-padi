@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Footer from '../components/Footer/Footer';
 import KecamatanMap from '../components/KecamatanMap';
+import { UserCheck } from 'lucide-react';
 const HomePage = () => {
   const [data, setData] = useState({ geo: null, pred: {}, feat: {}, weather: null });
 
@@ -18,6 +19,12 @@ const HomePage = () => {
     };
     fetchData();
   }, []);
+  const tim = [
+    'Khoirunnisa\' Afandi, S.Kom., M.Kom',
+    'M. Habibullah Arief, S.Kom., M.Kom',
+    'Fajrin Nurman Arifin, S.T., M.Eng',
+    'Asmak Afriliana, S.TP., M.P., Ph.D',
+  ];
   return (
     <div className="bg-neutral-50 min-h-screen text-neutral-900 font-sans">
       
@@ -120,25 +127,30 @@ const HomePage = () => {
       </p>
     </section>
 
-      {/* 5. TIM PENELITI */}
       <section className="py-20 bg-neutral-50 text-neutral-900">
-  <div className="max-w-7xl mx-auto px-6 text-center">
-    <h2 className="text-3xl font-bold mb-12 text-neutral-900">Tim Peneliti</h2>
-    <div className="grid md:grid-cols-3 gap-8">
-      {['Khoirunnisa\' Afandi', 'M. Habibullah Arief', 'Fajrin Nurman Arifin'].map((nama, i) => (
-        <div 
-          key={i} 
-          className="bg-white p-8 rounded-3xl border border-neutral-100 shadow-sm hover:shadow-xl transition-shadow duration-300"
-        >
-          <div className="w-24 h-24 bg-neutral-100 rounded-full mx-auto mb-6 border-4 border-white shadow-inner">
-             {/* Kamu bisa ganti div ini dengan <img src={...} /> untuk foto profil */}
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <h2 className="text-3xl font-bold mb-12 text-neutral-900">Tim Peneliti</h2>
+          
+          {/* Mengubah grid menjadi 4 kolom di layar medium ke atas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {tim.map((nama, i) => (
+              <div 
+                key={i} 
+                className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-between"
+              >
+                {/* Tempat Ikon / Stiker */}
+                <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-5 border-4 border-white shadow-sm text-emerald-600">
+                  <UserCheck className="w-10 h-10" />
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-base text-neutral-900 leading-snug">{nama}</h4>
+                  <p className="text-emerald-600 font-medium text-xs mt-2">Peneliti Universitas Jember</p>
+                </div>
+              </div>
+            ))}
           </div>
-          <h4 className="font-bold text-lg text-neutral-900">{nama}</h4>
-          <p className="text-emerald-600 font-medium text-sm mt-1">Peneliti Universitas Jember</p>
         </div>
-      ))}
-    </div>
-  </div>
       </section>
 
       {/* 6. FOOTER CTA */}

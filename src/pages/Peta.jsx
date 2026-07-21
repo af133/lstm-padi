@@ -283,7 +283,7 @@ export default function PetaPrediksiPanen() {
     <div className="space-y-6  max-w-7xl mx-auto px-4 py-6 font-sans">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100">
         <div>
-          <div className="flex mt-20 items-center gap-2 text-emerald-600 font-semibold text-sm mb-1">
+          <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm mb-1">
             <Layers className="w-4 h-4" />
             <span>SiPanen Jember Intelligence</span>
           </div>

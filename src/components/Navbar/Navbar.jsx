@@ -115,7 +115,6 @@ const Navbar = ({ activePage, setActivePage, isLoggedIn, onLogout, onLoginSucces
                   setIsOpen(false);
                 }}
                 className={`text-left w-full relative px-4 py-3 rounded-xl transition-all duration-300 ${
-                  // Warna Aktif Mobile jadi Hijau
                   activePage === item 
                     ? 'bg-emerald-500/20 text-emerald-300 font-semibold text-lg' 
                     : 'text-white/80 hover:text-white hover:bg-white/5 text-lg'
