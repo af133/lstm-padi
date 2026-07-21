@@ -4,7 +4,7 @@ const Navbar = ({ activePage, setActivePage }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  const menuItems = ['Beranda', 'Tentang Kami', 'Peta', 'Fitur'];
+  const menuItems = ['Beranda', 'Tentang Kami', 'Peta', 'Fitur','Dashboard'];
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
