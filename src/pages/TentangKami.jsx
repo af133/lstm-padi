@@ -82,9 +82,7 @@ export default function TentangKami() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-emerald-500 selection:text-white">
-      {/* 1. HERO / INTRO HALAMAN */}
       <section className="relative bg-gradient-to-br from-emerald-900 via-emerald-800 to-slate-900 text-white py-20 px-6 overflow-hidden">
-        {/* Background decorative elements */}
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:16px_16px]"></div>
         
         <div className="max-w-5xl mx-auto relative z-10 text-center">

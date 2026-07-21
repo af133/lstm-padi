@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Navbar from './components/Navbar/Navbar';
 import TentangKami from './pages/TentangKami';
 import HomePage from './pages/HomePage';
+import FeaturesPage from './pages/Fitur';
+import PetaPrediksiPanen from './pages/Peta';
 
 export default function App() {
   const [activePage, setActivePage] = useState('Beranda');
@@ -12,6 +14,8 @@ export default function App() {
       <main >
         {activePage === 'Beranda' && <HomePage />}
         {activePage === 'Tentang Kami' && <TentangKami />}
+        {activePage === 'Fitur' && <FeaturesPage />}
+        {activePage === 'Peta' && <PetaPrediksiPanen/>}
       </main>
     </div>
   );

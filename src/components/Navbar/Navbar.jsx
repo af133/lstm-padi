@@ -14,7 +14,7 @@ const Navbar = ({ activePage, setActivePage }) => {
 
   return (
     <nav
-      className={`fixed w-full z-50 transition-all duration-500 backdrop-blur-xl bg-black/60 border-b border-white/10 shadow-lg shadow-black/20
+      className={`fixed w-full z-2000 transition-all duration-500 backdrop-blur-xl bg-black/60 border-b border-white/10 shadow-lg shadow-black/20
           
       `}
     >
