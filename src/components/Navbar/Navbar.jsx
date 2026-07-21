@@ -43,16 +43,15 @@ const Navbar = ({ activePage, setActivePage, isLoggedIn, onLogout, onLoginSucces
         className={`fixed w-full z-2000 transition-all duration-500 backdrop-blur-xl bg-black/60 border-b border-white/10 shadow-lg shadow-black/20`}
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center text-white">
-          <div 
-            onClick={() => setActivePage('Beranda')}
-            className="flex items-center gap-2 text-2xl font-bold tracking-tight cursor-pointer"
-          >
-            {/* Titik Ijo */}
-            <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-300 animate-pulse" />
-            <span className="bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
-              LSTM
-            </span>
-          </div>
+        <div 
+          onClick={() => setActivePage('Beranda')}
+          className="flex items-center gap-3 text-2xl font-bold tracking-tight cursor-pointer"
+        >
+          <img src="/src/assets/logo.png" alt="Logo SiPadi Jember" className="w-10 h-10 object-contain" />
+          <span className="bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
+            SiPadi Jember
+          </span>
+        </div>
           <ul className="hidden md:flex gap-2 font-medium text-sm">
             {menuItems.map((item) => (
               <button
