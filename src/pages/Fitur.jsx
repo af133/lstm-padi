@@ -305,7 +305,7 @@ export default function FeaturesPage() {
             <div className="flex items-center gap-6 pt-2">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-slate-400"></span>
-                <span className="text-xs text-slate-600 font-medium">Data Historis BPS</span>
+                <span className="text-xs text-slate-600 font-medium">Data Historis </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-emerald-600"></span>
