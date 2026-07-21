@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter,HTTPException
 from app.schemas.input_data import KecamatanData
 from app.services.firebase_service import save_kecamatan_features,update_kecamatan_features,delete_kecamatan_features, get_all_kecamatan_features,get_cuaca_jember
 from collections import defaultdict
@@ -52,3 +52,31 @@ async def get_data_by_kecamatan():
 async def get_cuaca_endpoint():
     data = get_cuaca_jember()
     return {"status": "success", "data": data}
+
+@router.get("/get-all-kecamatan")
+async def get_data_all_kecamatan():
+    try:
+        raw_docs = get_all_kecamatan_features()
+        formatted_docs = []
+        for doc in raw_docs:
+            doc_id = doc.get("name", "").split("/")[-1]
+            fields = doc.get("fields", {})
+            formatted_doc = {
+                "id": doc_id,
+                "kode": fields.get("kode", {}).get("stringValue"),
+                "tahun": int(fields.get("tahun", {}).get("integerValue", 0)),
+                "bulan": int(fields.get("bulan", {}).get("integerValue", 0)),
+                "created_at": fields.get("createdAt", {}).get("timestampValue"),
+                "updated_at": fields.get("updatedAt", {}).get("timestampValue"),
+                "features": {
+                    k: (
+                        float(v.get("doubleValue")) if "doubleValue" in v 
+                        else int(v.get("integerValue", 0))
+                    )
+                    for k, v in fields.get("features", {}).get("mapValue", {}).get("fields", {}).items()
+                }
+            }
+            formatted_docs.append(formatted_doc)
+        return formatted_docs
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
