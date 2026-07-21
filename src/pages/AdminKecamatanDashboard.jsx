@@ -754,7 +754,7 @@ export default function AdminKecamatanDashboard() {
 
       {/* --- ADD / EDIT MODAL --- */}
       {isAddEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-2050 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             
             <div className="px-6 py-5 bg-emerald-800 text-white flex items-center justify-between">
