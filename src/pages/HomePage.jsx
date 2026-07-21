@@ -49,7 +49,7 @@ const HomePage = () => {
           </div>
           
           <div className="md:w-1/2 relative">
-            <img src="src/assets/Gemini_Generated_Image_n7qd40n7qd40n7qd-removebg-preview.png" alt="Petani" className="relative z-10 w-full max-w-lg mx-auto" />
+            <img src="/src/assets/Gemini_Generated_Image_n7qd40n7qd40n7qd-removebg-preview.png" alt="Petani" className="relative z-10 w-full max-w-lg mx-auto" />
             
             {/* Floating Card */}
             <div className="absolute bottom-10 -left-10 bg-white/10 backdrop-blur-xl border border-white/20 p-5 rounded-2xl text-white z-20 shadow-2xl">
