@@ -6,8 +6,6 @@ import {
   Layers, Check, HelpCircle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-
-// --- FEATURE ORDER CONSTANT (SESUAI MODEL LSTM) ---
 const feature_order = [
   'luas tanam', 'luas panen bersih', 'curah_hujan_mm', 'suhu_rata2_c', 'kelembaban_persen',
   'luas_tanam_lag3', 'luas_tanam_lag4', 'curah_hujan_lag1', 'curah_hujan_lag2',
@@ -76,14 +74,9 @@ export default function AdminKecamatanDashboard() {
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportMode, setExportMode] = useState('filtered');
-
-  // Bulk Delete
   const [selectedRowIds, setSelectedRowIds] = useState([]);
-
-  // Toast Notifications
   const [toasts, setToasts] = useState([]);
 
-  // Form State dinamis berdasarkan feature_order
   const initialFormState = {
     kode: '',
     tahun: new Date().getFullYear(),
