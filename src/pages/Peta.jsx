@@ -27,7 +27,7 @@ import {
 } from 'recharts';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
+import geoData from '../assets/jember.json';
 const MONTH_NAMES = {
   "1": "Jan", "2": "Feb", "3": "Mar", "4": "Apr",
   "5": "Mei", "6": "Jun", "7": "Jul", "8": "Ags",
@@ -58,10 +58,6 @@ export default function PetaPrediksiPanen() {
       try {
         setLoading(true);
         const [resGeo, resPred, resFeat, resWeather] = await Promise.all([
-          fetch('src/assets/jember.json').then(r => {
-            if (!r.ok) throw new Error('Gagal memuat file GeoJSON');
-            return r.json();
-          }),
           fetch('https://lstm-padi.onrender.com/predict-all-kecamatan').then(r => {
             if (!r.ok) throw new Error('Gagal memuat data prediksi');
             return r.json();
@@ -77,7 +73,7 @@ export default function PetaPrediksiPanen() {
         ]);
 
         setData({
-          geo: resGeo,
+          geo: geoData ,
           pred: resPred,
           feat: resFeat,
           weather: resWeather?.data || resWeather 
