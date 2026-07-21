@@ -2,19 +2,22 @@ import React, { useState, useEffect } from 'react';
 import Footer from '../components/Footer/Footer';
 import KecamatanMap from '../components/KecamatanMap';
 import { UserCheck } from 'lucide-react';
+import Padi from '../assets/Gemini_Generated_Image_n7qd40n7qd40n7qd-removebg-preview.png'
+import geoData from '../assets/jember.json';
 const HomePage = () => {
+
   const [data, setData] = useState({ geo: null, pred: {}, feat: {}, weather: null });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [resGeo, resPred, resFeat,resWeather] = await Promise.all([
-          fetch('src/assets/jember.json').then(r => r.json()),
+          
           fetch('https://lstm-padi.onrender.com/predict-all-kecamatan').then(r => r.json()),
           fetch('https://lstm-padi.onrender.com/get-features-by-kecamatan').then(r => r.json()),
           fetch('https://lstm-padi.onrender.com/get-cuaca-jember').then(r => r.json()),
         ]);
-        setData({ geo: resGeo, pred: resPred, feat: resFeat, weather: resWeather });
+        setData({ geo: geoData, pred: resPred, feat: resFeat, weather: resWeather });
       } catch (err) { console.error("Error loading data:", err); }
     };
     fetchData();
@@ -49,7 +52,7 @@ const HomePage = () => {
           </div>
           
           <div className="md:w-1/2 relative">
-            <img src="/src/assets/Gemini_Generated_Image_n7qd40n7qd40n7qd-removebg-preview.png" alt="Petani" className="relative z-10 w-full max-w-lg mx-auto" />
+            <img src={Padi} alt="Petani" className="relative z-10 w-full max-w-lg mx-auto" />
             
             {/* Floating Card */}
             <div className="absolute bottom-10 -left-10 bg-white/10 backdrop-blur-xl border border-white/20 p-5 rounded-2xl text-white z-20 shadow-2xl">

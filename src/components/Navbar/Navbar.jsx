@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import logo from '../../assets/logo.png'
 
 const Navbar = ({ activePage, setActivePage, isLoggedIn, onLogout, onLoginSuccess }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -47,7 +48,7 @@ const Navbar = ({ activePage, setActivePage, isLoggedIn, onLogout, onLoginSucces
           onClick={() => setActivePage('Beranda')}
           className="flex items-center gap-3 text-2xl font-bold tracking-tight cursor-pointer"
         >
-          <img src="/src/assets/logo.png" alt="Logo SiPadi Jember" className="w-10 h-10 object-contain" />
+          <img src={logo} alt="Logo SiPadi Jember" className="w-10 h-10 object-contain" />
           <span className="bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
             SiPadi Jember
           </span>
