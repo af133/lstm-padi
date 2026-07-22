@@ -7,21 +7,25 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, 'models', 'model_lstm_panen_jember_tuned.h5')
 SCALER_X_PATH = os.path.join(BASE_DIR, 'models', 'scaler_X.pkl')
 SCALER_Y_PATH = os.path.join(BASE_DIR, 'models', 'scaler_Y.pkl')
+
 model = tf.keras.models.load_model(MODEL_PATH)
 scaler_X = joblib.load(SCALER_X_PATH)
 scaler_Y = joblib.load(SCALER_Y_PATH)
+
 def encode_bulan(bulan):
     sin_bulan = np.sin(2 * np.pi * bulan / 12)
     cos_bulan = np.cos(2 * np.pi * bulan / 12)
     return sin_bulan, cos_bulan
-def get_prediction(list_3_months_data):
-    processed_months = []
+
+def extract_features(list_3_months_data):
+    """Mengubah list 3 bulan data ke matrix numpy (3, 16)"""
     feature_order = [
         'luas tanam', 'luas panen bersih', 'curah_hujan_mm', 'suhu_rata2_c', 'kelembaban_persen',
         'luas_tanam_lag3', 'luas_tanam_lag4', 'curah_hujan_lag1', 'curah_hujan_lag2',
         'jumlah_pupuk', 'bulan_sin', 'bulan_cos', 'panen_lag_1', 'panen_lag_2', 
         'tanam_lag_1', 'tanam_lag_2'
     ]
+    processed_months = []
     for item in list_3_months_data:
         features = item.get('features', {}) if isinstance(item.get('features'), dict) else item
         bulan_val = item.get('bulan') or features.get('bulan', 1)
@@ -46,9 +50,17 @@ def get_prediction(list_3_months_data):
         }
         row = [np.float64(mapped_data[f]) for f in feature_order]
         processed_months.append(row)
-    input_seq = np.array(processed_months)
-    input_scaled = scaler_X.transform(input_seq)
-    input_final = input_scaled.reshape(1, 3, 16)
-    prediction_scaled = model.predict(input_final, verbose=0) 
-    prediction = scaler_Y.inverse_transform(prediction_scaled)
-    return max(0.0, float(prediction[0][0]))
+    
+    input_seq = np.array(processed_months) 
+    return scaler_X.transform(input_seq) 
+
+def predict_batch(batch_sequences):
+    if not batch_sequences:
+        return []
+    
+    X_batch = np.array(batch_sequences) 
+    prediction_scaled = model.predict(X_batch, batch_size=len(X_batch), verbose=0)
+    predictions = scaler_Y.inverse_transform(prediction_scaled)
+    
+    # Clip ke 0.0 jika negatif
+    return np.maximum(0.0, predictions.flatten()).tolist()

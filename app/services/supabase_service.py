@@ -48,7 +48,6 @@ def delete_kecamatan_features(doc_id: str) -> bool:
 
 
 def get_all_kecamatan_features() -> list:
-    """Mengambil seluruh data kecamatan_features tanpa batas Firestore."""
     try:
         response = (
             supabase.table("kecamatan_features")
