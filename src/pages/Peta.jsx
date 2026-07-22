@@ -101,7 +101,7 @@ export default function PetaPrediksiPanen() {
     switch (status?.toLowerCase()) {
       case 'aman': return '#10b981';
       case 'waspada': return '#f59e0b';
-      case 'kritis': return '#f43f5e';
+      case 'rawan': return '#f43f5e';
       default: return '#94a3b8';
     }
   };
@@ -110,7 +110,7 @@ export default function PetaPrediksiPanen() {
     switch (status?.toLowerCase()) {
       case 'aman': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'waspada': return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'kritis': return 'bg-rose-50 text-rose-700 border-rose-200';
+      case 'rawan': return 'bg-rose-50 text-rose-700 border-rose-200';
       default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
@@ -354,7 +354,7 @@ export default function PetaPrediksiPanen() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-rose-500"></span>
-                <span className="text-slate-600">Kritis</span>
+                <span className="text-slate-600">Rawan</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-slate-400"></span>
@@ -391,7 +391,7 @@ export default function PetaPrediksiPanen() {
                     <div className={`px-3 py-1 rounded-2xl text-xs font-bold border flex items-center gap-1.5 ${getStatusBadgeClass(selectedLatest?.status)}`}>
                       {selectedLatest?.status?.toLowerCase() === 'aman' && <ShieldCheck className="w-3.5 h-3.5" />}
                       {selectedLatest?.status?.toLowerCase() === 'waspada' && <AlertTriangle className="w-3.5 h-3.5" />}
-                      {selectedLatest?.status?.toLowerCase() === 'kritis' && <ShieldAlert className="w-3.5 h-3.5" />}
+                      {selectedLatest?.status?.toLowerCase() === 'rawan' && <ShieldAlert className="w-3.5 h-3.5" />}
                       {selectedLatest?.status || 'Tidak Ada Data'}
                     </div>
                   </div>
