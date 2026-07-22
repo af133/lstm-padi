@@ -79,10 +79,10 @@ export default function PetaPrediksiPanen() {
           weather: resWeather?.data || resWeather 
         });
 
-        if (resGeo && resGeo.features && resGeo.features.length > 0) {
-          const firstCode = resGeo.features[0].properties?.kode || 
-                            resGeo.features[0].properties?.kode_kecamatan || 
-                            resGeo.features[0].properties?.ID ||
+        if (geoData && geoData.features && geoData.features.length > 0) {
+          const firstCode = geoData.features[0].properties?.kode || 
+                            geoData.features[0].properties?.kode_kecamatan || 
+                            geoData.features[0].properties?.ID ||
                             Object.keys(resPred || {})[0];
           if (firstCode) {
             setSelectedKecamatanCode(firstCode);
@@ -102,7 +102,7 @@ export default function PetaPrediksiPanen() {
       case 'aman': return '#10b981';
       case 'waspada': return '#f59e0b';
       case 'kritis': return '#f43f5e';
-      default: return '#94a3b8'; // Abu-abu default jika data tidak ada / tidak dikenali
+      default: return '#94a3b8';
     }
   };
 
@@ -201,8 +201,6 @@ export default function PetaPrediksiPanen() {
     const name = feature.properties?.nama || feature.properties?.WADMKC || feature.properties?.name || code;
     const latest = getLatestPeriodData(code);
     const weatherInfo = data.weather && data.weather[code];
-
-    // Jika data prediksi/status tidak ada, latest?.status bernilai undefined sehingga getStatusColor mengembalikan abu-abu
     const status = latest?.status;
     const fillColor = getStatusColor(status);
 
@@ -387,7 +385,9 @@ export default function PetaPrediksiPanen() {
                   <h3 className="text-xl font-extrabold text-slate-800 mt-0.5">{selectedName}</h3>
                   
                   <div className="mt-3 flex items-center justify-between">
-                    <span className="text-xs text-slate-500 font-medium">Status Keseluruhan ({selectedLatest?.monthName || '-'} {selectedLatest?.year || '-'}):</span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Status Keseluruhan ({selectedLatest?.monthName || '-'} {selectedLatest?.year || '-'}):
+                    </span>
                     <div className={`px-3 py-1 rounded-2xl text-xs font-bold border flex items-center gap-1.5 ${getStatusBadgeClass(selectedLatest?.status)}`}>
                       {selectedLatest?.status?.toLowerCase() === 'aman' && <ShieldCheck className="w-3.5 h-3.5" />}
                       {selectedLatest?.status?.toLowerCase() === 'waspada' && <AlertTriangle className="w-3.5 h-3.5" />}
@@ -395,6 +395,21 @@ export default function PetaPrediksiPanen() {
                       {selectedLatest?.status || 'Tidak Ada Data'}
                     </div>
                   </div>
+                  {['waspada', 'kritis', 'rawan'].includes(selectedLatest?.status?.toLowerCase()) && (
+                    <div className={`mt-2.5 p-2.5 rounded-lg border text-xs flex items-start gap-2 ${
+                      selectedLatest?.status?.toLowerCase() === 'kritis' || selectedLatest?.status?.toLowerCase() === 'rawan'
+                        ? 'bg-rose-50 border-rose-200 text-rose-700'
+                        : 'bg-amber-50 border-amber-200 text-amber-700'
+                    }`}>
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold">Perhatian: Perlunya Peningkatan Penyaluran</p>
+                        <p className="mt-0.5 opacity-90">
+                          Dapat dipertimbangkan sebagai wilayah peningkatan penyaluran pupuk.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 pt-2">

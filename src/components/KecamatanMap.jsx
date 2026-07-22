@@ -15,7 +15,7 @@ const KecamatanMap = ({ predictionData, featureData, weatherData }) => {
     const map = new Map();
     geoData?.features?.forEach((f) => {
       const props = f.properties || {};
-      const key = normalizeName(props.NAMOBJ || props.WADMKC);
+      const key = normalizeName(props.WADMKC);
       if (key) map.set(key, { kode: props.kode || '', kodeBmkg: props.kode_bmkg || props.kode });
     });
     return map;
