@@ -8,7 +8,7 @@ import {
 import geoData from '../assets/jember.json';
 import * as XLSX from 'xlsx';
 const feature_order = [
-  'luas tanam', 'luas panen bersih', 'curah_hujan_mm', 'suhu_rata2_c', 'kelembaban_persen',
+  'luas_tanam', 'luas_panen_bersih', 'curah_hujan_mm', 'suhu_rata2_c', 'kelembaban_persen',
   'luas_tanam_lag3', 'luas_tanam_lag4', 'curah_hujan_lag1', 'curah_hujan_lag2',
   'jumlah_pupuk','panen_lag_1', 'panen_lag_2', 
   'tanam_lag_1', 'tanam_lag_2','produksi_ton'
@@ -23,6 +23,29 @@ const titleCase = (str) => {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
+const FEATURE_LABELS = {
+  'luas tanam': 'Luas Tanam (Ha)',
+  'luas_tanam': 'Luas Tanam (Ha)',
+  'luas panen bersih': 'Luas Panen Bersih (Ha)',
+  'luas_panen_bersih': 'Luas Panen Bersih (Ha)',
+  'curah_hujan_mm': 'Curah Hujan (mm)',
+  'suhu_rata2_c': 'Suhu Rata-rata (°C)',
+  'kelembaban_persen': 'Kelembaban (%)',
+  'jumlah_pupuk': 'Jumlah Pupuk (Kg)',
+  'curah_hujan_lag1': 'Curah Hujan (1 Bln Lalu)',
+  'curah_hujan_lag2': 'Curah Hujan (2 Bln Lalu)',
+  'panen_lag_1': 'Panen (1 Bln Lalu)',
+  'panen_lag_2': 'Panen (2 Bln Lalu)',
+  'tanam_lag_1': 'Tanam (1 Bln Lalu)',
+  'tanam_lag_2': 'Tanam (2 Bln Lalu)',
+  'luas_tanam_lag3': 'Luas Tanam (3 Bln Lalu)',
+  'luas_tanam_lag4': 'Luas Tanam (4 Bln Lalu)',
+  
+  'bulan_sin': 'Bulan (Sin)',
+  'bulan_cos': 'Bulan (Cos)'
+};
+
+
 
 const getKecamatanOptions = (geoJson) => {
   const seen = new Map();
@@ -256,7 +279,7 @@ export default function AdminKecamatanDashboard() {
       let res;
       if (isEditMode && currentDocId) {
         res = await fetch(`https://lstm-padi.onrender.com/update-features/${currentDocId}`, {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
@@ -657,7 +680,9 @@ export default function AdminKecamatanDashboard() {
                       <th className="py-4 px-4">Kecamatan</th>
                       <th className="py-4 px-4">Periode</th>
                       {feature_order.slice(0, 5).map((featKey) => (
-                        <th key={featKey} className="py-4 px-4 text-right capitalize">{featKey.replace(/_/g, ' ')}</th>
+                        <th key={featKey} className="py-4 px-4 text-right">
+                          {FEATURE_LABELS[featKey] || featKey.replace(/_/g, ' ')}
+                        </th>
                       ))}
                       <th className="py-4 px-4 text-center">Aksi</th>
                     </tr>
@@ -839,7 +864,7 @@ export default function AdminKecamatanDashboard() {
                   {feature_order.map((featKey) => (
                     <div key={featKey}>
                       <label className="block text-xs font-semibold text-slate-600 mb-1 capitalize">
-                        {featKey.replace(/_/g, ' ')}
+                        {FEATURE_LABELS[featKey] || featKey.replace(/_/g, ' ')}
                       </label>
                       <input
                         type="number"

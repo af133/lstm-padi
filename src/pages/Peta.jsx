@@ -617,14 +617,14 @@ export default function PetaPrediksiPanen() {
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
                   <span className="text-[10px] text-slate-400 block font-medium">Luas Tanam</span>
                   <span className="text-sm font-extrabold text-slate-800 mt-0.5 block">
-                    {toNumber(activeFeatureItem["luas tanam"]).toLocaleString()} <span className="text-xs font-normal text-slate-500">ha</span>
+                    {toNumber(activeFeatureItem["luas_tanam"]).toLocaleString()} <span className="text-xs font-normal text-slate-500">ha</span>
                   </span>
                 </div>
 
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
                   <span className="text-[10px] text-slate-400 block font-medium">Luas Panen Bersih</span>
                   <span className="text-sm font-extrabold text-slate-800 mt-0.5 block">
-                    {toNumber(activeFeatureItem["luas panen bersih"]).toLocaleString()} <span className="text-xs font-normal text-slate-500">ha</span>
+                    {toNumber(activeFeatureItem["luas_panen_bersih"]).toLocaleString()} <span className="text-xs font-normal text-slate-500">ha</span>
                   </span>
                 </div>
 

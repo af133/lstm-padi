@@ -183,11 +183,19 @@ const KecamatanMap = ({ predictionData, featureData, weatherData }) => {
               </div>
 
               <div className="space-y-1 text-xs text-neutral-300 pt-2 border-t border-neutral-800">
-                  <p>Curah Hujan: {selected.feat?.curah_hujan_mm ?? '-'} mm</p>
-                  <p>Suhu: {selected.weather?.temp_avg ?? '-'} °C</p>
-                  <p>Kecepatan Angin: {selected.weather?.windspeed_avg ?? '-'} km/jam</p>
-                  <p>Kelembapan: {selected.weather?.humidity_avg ?? '-'} %</p>
-              </div>
+              <p>
+                Curah Hujan: {selected.feat?.curah_hujan_mm != null ? Number(selected.feat.curah_hujan_mm.toFixed(2)) : '-'} mm
+              </p>
+              <p>
+                Suhu: {selected.weather?.temp_avg != null ? Number(selected.weather.temp_avg.toFixed(2)) : '-'} °C
+              </p>
+              <p>
+                Kecepatan Angin: {selected.weather?.windspeed_avg != null ? Number(selected.weather.windspeed_avg.toFixed(2)) : '-'} km/jam
+              </p>
+              <p>
+                Kelembapan: {selected.weather?.humidity_avg != null ? Number(selected.weather.humidity_avg.toFixed(2)) : '-'} %
+              </p>
+            </div>
             </div>
           ) : (
             <p className="text-neutral-500 text-sm mt-4 text-center">Klik wilayah pada peta untuk melihat data terbaru.</p>
