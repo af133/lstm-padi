@@ -57,11 +57,11 @@ export default function PetaPrediksiPanen() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [resGeo, resPred, resFeat, resWeather] = await Promise.all([
+        const [resPred, resFeat, resWeather] = await Promise.all([
           fetch('https://lstm-padi.onrender.com/predict-all-kecamatan').then(r => {
             if (!r.ok) throw new Error('Gagal memuat data prediksi');
             return r.json();
-          }),
+          }), 
           fetch('https://lstm-padi.onrender.com/get-features-by-kecamatan').then(r => {
             if (!r.ok) throw new Error('Gagal memuat data fitur');
             return r.json();
@@ -97,7 +97,6 @@ export default function PetaPrediksiPanen() {
     fetchData();
   }, []);
 
-  // Jika status tidak ada atau tidak valid, otomatis menghasilkan warna abu-abu (#94a3b8)
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'aman': return '#10b981';

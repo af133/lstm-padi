@@ -11,7 +11,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [resGeo, resPred, resFeat,resWeather] = await Promise.all([
+        const [ resPred, resFeat,resWeather] = await Promise.all([
           
           fetch('https://lstm-padi.onrender.com/predict-all-kecamatan').then(r => r.json()),
           fetch('https://lstm-padi.onrender.com/get-features-by-kecamatan').then(r => r.json()),
