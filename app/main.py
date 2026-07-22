@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.api import features, predict
-from app.services.firebase_service import start_scheduler
+from app.services.supabase_service import start_scheduler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     start_scheduler()
