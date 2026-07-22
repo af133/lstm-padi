@@ -46,23 +46,32 @@ def delete_kecamatan_features(doc_id: str) -> bool:
         print(f"Error Supabase Delete: {e}")
         return False
 
-
 def get_all_kecamatan_features() -> list:
     try:
-        response = (
-            supabase.table("kecamatan_features")
-            .select("*")
-            .order("kode", desc=False)
-            .order("tahun", desc=True)
-            .order("bulan", desc=True)
-            .execute()
-        )
-        return response.data or []
+        all_data = []
+        page_size = 1000
+        start = 0
+        while True:
+            response = (
+                supabase.table("kecamatan_features")
+                .select("*")
+                .order("kode", desc=False)
+                .order("tahun", desc=True)
+                .order("bulan", desc=True)
+                .range(start, start + page_size - 1)
+                .execute()
+            )
+            data = response.data or []
+            if not data:
+                break
+            all_data.extend(data)
+            if len(data) < page_size:
+                break
+            start += page_size
+        return all_data
     except Exception as e:
         print(f"Error Supabase Get All: {e}")
         return []
-
-
 # --- FUNGSI CUACA JEMBER ---
 
 def get_cuaca_jember() -> dict:
