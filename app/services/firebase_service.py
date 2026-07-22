@@ -53,10 +53,22 @@ def delete_kecamatan_features(doc_id: str):
     response = requests.delete(url)
     return response.status_code == 200
 def get_all_kecamatan_features():
-    url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/kecamatan_features?key={api_key}&orderBy=kode asc, tahun desc, bulan desc"
-    response = requests.get(url)
+    # Ubah endpoint ke :runQuery
+    url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents:runQuery?key={api_key}"
+    payload = {
+        "structuredQuery": {
+            "from": [{"collectionId": "kecamatan_features"}],
+            "orderBy": [
+                {"field": {"fieldPath": "kode"}, "direction": "ASCENDING"},
+                {"field": {"fieldPath": "tahun"}, "direction": "DESCENDING"},
+                {"field": {"fieldPath": "bulan"}, "direction": "DESCENDING"}
+            ]
+        }
+    }
+    response = requests.post(url, json=payload)
     if response.status_code == 200:
-        documents = response.json().get("documents", [])
+        results = response.json()
+        documents = [item["document"] for item in results if "document" in item]
         return documents
     return []
 def get_cuaca_jember():
