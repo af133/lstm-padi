@@ -5,6 +5,7 @@ import {
   RefreshCw, FileSpreadsheet, MapPin, Activity,
   Layers, Check, HelpCircle
 } from 'lucide-react';
+import geoData from '../assets/jember.json';
 import * as XLSX from 'xlsx';
 const feature_order = [
   'luas tanam', 'luas panen bersih', 'curah_hujan_mm', 'suhu_rata2_c', 'kelembaban_persen',
@@ -114,18 +115,17 @@ export default function AdminKecamatanDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [apiRes, geoRes] = await Promise.all([
+      const [apiRes] = await Promise.all([
         fetch('https://lstm-padi.onrender.com/get-all-kecamatan'),
-        fetch('/src/assets/jember.json').catch(() => null)
+        
       ]);
 
       if (!apiRes.ok) throw new Error(`Gagal memuat data dari server (${apiRes.status})`);
       const apiData = await apiRes.json();
       setRecords(Array.isArray(apiData) ? apiData : apiData.data || []);
 
-      if (geoRes && geoRes.ok) {
-        const geoJson = await geoRes.json();
-        const options = getKecamatanOptions(geoJson);
+      if (geoData) {
+        const options = getKecamatanOptions( geoData);
         setKecamatanOptions(options);
       } else {
         const fallbackOptions = [
