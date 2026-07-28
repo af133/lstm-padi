@@ -8,13 +8,22 @@ import {
 import geoData from '../assets/jember.json';
 import * as XLSX from 'xlsx';
 const feature_order = [
-  'luas_tanam', 'luas_panen_bersih', 'curah_hujan_mm', 'suhu_rata2_c', 'kelembaban_persen',
-  'luas_tanam_lag3', 'luas_tanam_lag4', 'curah_hujan_lag1', 'curah_hujan_lag2',
-  'jumlah_pupuk','panen_lag_1', 'panen_lag_2', 
-  'tanam_lag_1', 'tanam_lag_2','produksi_ton'
+  "tanam_total_ha",
+  "panen_bersih_admin_ha",
+  "produksi_ton_gkg",
+
+  "curah_hujan_mm",
+  "temp_max_c",
+  "temp_min_c",
+  "temp_avg_c",
+  "humidity_pct_clean",
+  "wind_speed_kmh",
+
+  "urea_kg",
+  "npk_kg"
+
 ];
 
-// --- HELPER FUNCTIONS ---
 const titleCase = (str) => {
   if (!str) return '';
   return str
@@ -24,25 +33,23 @@ const titleCase = (str) => {
     .join(' ');
 };
 const FEATURE_LABELS = {
-  'luas tanam': 'Luas Tanam (Ha)',
-  'luas_tanam': 'Luas Tanam (Ha)',
-  'luas panen bersih': 'Luas Panen Bersih (Ha)',
-  'luas_panen_bersih': 'Luas Panen Bersih (Ha)',
-  'curah_hujan_mm': 'Curah Hujan (mm)',
-  'suhu_rata2_c': 'Suhu Rata-rata (°C)',
-  'kelembaban_persen': 'Kelembaban (%)',
-  'jumlah_pupuk': 'Jumlah Pupuk (Kg)',
-  'curah_hujan_lag1': 'Curah Hujan (1 Bln Lalu)',
-  'curah_hujan_lag2': 'Curah Hujan (2 Bln Lalu)',
-  'panen_lag_1': 'Panen (1 Bln Lalu)',
-  'panen_lag_2': 'Panen (2 Bln Lalu)',
-  'tanam_lag_1': 'Tanam (1 Bln Lalu)',
-  'tanam_lag_2': 'Tanam (2 Bln Lalu)',
-  'luas_tanam_lag3': 'Luas Tanam (3 Bln Lalu)',
-  'luas_tanam_lag4': 'Luas Tanam (4 Bln Lalu)',
-  
-  'bulan_sin': 'Bulan (Sin)',
-  'bulan_cos': 'Bulan (Cos)'
+  "tanggal": "Tanggal",
+  "tahun": "Tahun",
+  "bulan": "Bulan",
+
+  "tanam_total_ha": "Tanam Total (ha)",
+  "panen_bersih_admin_ha": "Panen Bersih (ha)",
+  "produksi_ton_gkg": "Produksi (Ton GKG)",
+
+  "curah_hujan_mm": "Curah Hujan (mm)",
+  "temp_max_c": "Suhu Maksimum (°C)",
+  "temp_min_c": "Suhu Minimum (°C)",
+  "temp_avg_c": "Suhu Rata-Rata (°C)",
+  "humidity_pct_clean": "Kelembapan (%)",
+  "wind_speed_kmh": "Kecepatan Angin (km/jam)",
+
+  "urea_kg": "Urea (kg)",
+  "npk_kg": "NPK (kg)"
 };
 
 
@@ -102,23 +109,24 @@ export default function AdminKecamatanDashboard() {
   const [toasts, setToasts] = useState([]);
 
   const initialFormState = {
-    kode: '',
+    kode: "",
     tahun: new Date().getFullYear(),
     bulan: new Date().getMonth() + 1,
-    'luas tanam': 0,
-    'luas panen bersih': 0,
+    tanggal: new Date().getDate(),
+    
+    tanam_total_ha: 0,
+    panen_bersih_admin_ha: 0,
+    produksi_ton_gkg: 0,
+
     curah_hujan_mm: 0,
-    suhu_rata2_c: 0,
-    kelembaban_persen: 0,
-    luas_tanam_lag3: 0,
-    luas_tanam_lag4: 0,
-    curah_hujan_lag1: 0,
-    curah_hujan_lag2: 0,
-    jumlah_pupuk: 0,
-    panen_lag_1: 0,
-    panen_lag_2: 0,
-    tanam_lag_1: 0,
-    tanam_lag_2: 0
+    temp_max_c: 0,
+    temp_min_c: 0,
+    temp_avg_c: 0,
+    humidity_pct_clean: 0,
+    wind_speed_kmh: 0,
+
+    urea_kg: 0,
+    npk_kg: 0,
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -177,7 +185,6 @@ export default function AdminKecamatanDashboard() {
   const mapPayloadToDisplay = (features) => {
     const displayData = {};
     feature_order.forEach(key => {
-      // Menangani variasi underscore vs spasi untuk luas tanam dan luas panen bersih
       if (key === 'luas tanam') {
         displayData[key] = features['luas tanam'] ?? features.luas_tanam ?? 0;
       } else if (key === 'luas panen bersih') {
@@ -198,6 +205,7 @@ export default function AdminKecamatanDashboard() {
     return {
       bulan: Number(form.bulan),
       tahun: Number(form.tahun),
+      tanggal:form.tanggal,
       kode: form.kode,
       features: featuresPayload
     };
@@ -262,6 +270,7 @@ export default function AdminKecamatanDashboard() {
     if (!formData.kode) errors.kode = "Kode kecamatan wajib dipilih.";
     if (!formData.tahun || isNaN(Number(formData.tahun))) errors.tahun = "Tahun wajib diisi.";
     if (!formData.bulan) errors.bulan = "Bulan wajib dipilih.";
+    if (!formData.tanggal) errors.tanggal = "Tanggal wajib dipilih.";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -348,7 +357,7 @@ export default function AdminKecamatanDashboard() {
   const handleDownloadTemplate = () => {
     const templateRow = {
       Kode: "35.09.21",
-      Kecamatan: "Sumbersari"
+      Kecamatan: "SUMBERSARI"
     };
     
     // Mengisi kolom berdasarkan urutan feature_order secara persis
