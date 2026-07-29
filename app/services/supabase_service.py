@@ -11,27 +11,36 @@ from app.core.config import settings
 from app.core.master_data import DESA_MAPPING
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SECRET_KEY)
 def save_kecamatan_features(data: dict) -> bool:
-    required_fields = ["bulan", "tahun", "kode", "tanggal", "features"]
+    print("DATA YANG DITERIMA:", data)
     missing = [f for f in required_fields if f not in data]
     if missing:
-        print(f"Field wajib hilang: {missing}")
-        return False
+        raise ValueError(f"Field wajib hilang: {missing}")
 
     try:
         payload = {
             "bulan": data["bulan"],
             "tahun": data["tahun"],
             "kode": data["kode"],
-            "tanggal": data["tanggal"],
+            "tanggal": (
+                data["tanggal"].isoformat()
+                if hasattr(data["tanggal"], "isoformat")
+                else data["tanggal"]
+            ),
             "features": data["features"],
         }
         response = supabase.table("kecamatan_features").insert(payload).execute()
-        return bool(response.data)
+        if not response.data:
+            raise RuntimeError(
+                "Insert ke Supabase tidak mengembalikan data. "
+                "Cek RLS policy / constraint / kolom pada tabel kecamatan_features."
+            )
+        return True
     except Exception as e:
         print(f"Error Supabase Insert: {e}")
-        return False
+        raise 
+
+
 def update_kecamatan_features(doc_id: str, data: dict) -> bool:
-    """Update data kecamatan_features berdasarkan Primary Key ID di Supabase."""    
     try:
         payload = {
             "bulan": data["bulan"],
@@ -42,7 +51,9 @@ def update_kecamatan_features(doc_id: str, data: dict) -> bool:
             "updated_at": datetime.utcnow().isoformat(),
         }
         response = supabase.table("kecamatan_features").update(payload).eq("id", doc_id).execute()
-        return bool(response.data)
+        if not response.data:
+            raise RuntimeError(f"Update gagal atau doc_id '{doc_id}' tidak ditemukan.")
+        return True
     except Exception as e:
         print(f"Error Supabase Update: {e}")
         return False
