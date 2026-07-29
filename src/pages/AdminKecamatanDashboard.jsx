@@ -11,7 +11,7 @@ const feature_order = [
   'luas_tanam', 'luas_panen_bersih', 'curah_hujan_mm', 'suhu_rata2_c', 'kelembaban_persen',
   'luas_tanam_lag3', 'luas_tanam_lag4', 'curah_hujan_lag1', 'curah_hujan_lag2',
   'jumlah_pupuk','panen_lag_1', 'panen_lag_2', 
-  'tanam_lag_1', 'tanam_lag_2','produksi_ton'
+  'tanam_lag_1', 'tanam_lag_2','produksi_ton','luas_panen_kotor'
 ];
 
 // --- HELPER FUNCTIONS ---
@@ -26,6 +26,7 @@ const titleCase = (str) => {
 const FEATURE_LABELS = {
   'luas_tanam': 'Luas Tanam (Ha)',
   'luas_panen_bersih': 'Luas Panen Bersih (Ha)',
+  'luas_panen_kotor' :"Luas Panen Kotor (Ha)",
   'curah_hujan_mm': 'Curah Hujan (mm)',
   'suhu_rata2_c': 'Suhu Rata-rata (°C)',
   'kelembaban_persen': 'Kelembaban (%)',
@@ -105,6 +106,7 @@ export default function AdminKecamatanDashboard() {
     bulan: new Date().getMonth() + 1,
     luas_tanam: 0,
     luas_panen_bersih: 0,
+    luas_panen_kotor:0,
     curah_hujan_mm: 0,
     suhu_rata2_c: 0,
     kelembaban_persen: 0,
