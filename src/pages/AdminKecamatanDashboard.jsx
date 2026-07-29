@@ -59,7 +59,9 @@ const getKecamatanOptions = (geoJson) => {
   if (geoJson && geoJson.features) {
     geoJson.features.forEach((f) => {
       const kode = f.properties?.kode;
-      const nama = f.properties?.WADMKC;
+      const nama = f.properties?.NAMOBJ;
+      console.log("Kode: "+kode);
+      console.log("Nama Kecamatan: "+nama);
       if (kode && nama && !seen.has(kode)) {
         seen.set(kode, titleCase(nama));
       }
@@ -398,6 +400,7 @@ export default function AdminKecamatanDashboard() {
           let namaInput = String(row.Kecamatan || row.kecamatan || '').trim();
           let tahunInput = row.tahun ?? row.Tahun;
           let bulanInput = row.bulan ?? row.Bulan;
+          let tanggalInput = row.tanggal ?? row.Tanggal;
           
           let matchedOption = kecamatanOptions.find(o => o.kode === kodeInput || o.nama.toLowerCase() === namaInput.toLowerCase());
 
@@ -418,6 +421,7 @@ export default function AdminKecamatanDashboard() {
             namaKecamatan: matchedOption ? matchedOption.nama : (namaInput || 'Tidak Dikenali'),
             tahun: Number(tahunInput || 2026),
             bulan: Number(bulanInput || 1),
+            tanggal:(tanggalInput||"23-07-2026"),
             features: featuresObj,
             isValid,
             errorMsg: !matchedOption ? "Kecamatan/Kode tidak valid" : !tahunInput ? "Tahun kosong" : null
@@ -452,6 +456,7 @@ export default function AdminKecamatanDashboard() {
         const payload = {
           bulan: row.bulan,
           tahun: row.tahun,
+          tanggal: row.tanggal,
           kode: row.kode,
           features: row.features
         };
@@ -497,6 +502,7 @@ export default function AdminKecamatanDashboard() {
 
       rowObj.tahun = item.tahun;
       rowObj.bulan = item.bulan;
+      rowObj.tanggal = item.tanggal;
       return rowObj;
     });
 
@@ -842,7 +848,7 @@ export default function AdminKecamatanDashboard() {
                       type="number"
                       value={formData.tahun}
                       onChange={(e) => setFormData({ ...formData, tahun: Number(e.target.value) })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 required"
                       placeholder="2026"
                     />
                   </div>
@@ -854,13 +860,24 @@ export default function AdminKecamatanDashboard() {
                     <select
                       value={formData.bulan}
                       onChange={(e) => setFormData({ ...formData, bulan: Number(e.target.value) })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 required"
                     >
                       {MONTH_NAMES.map((name, idx) => (
                         <option key={idx + 1} value={idx + 1}>{idx + 1} - {name}</option>
                       ))}
                     </select>
                   </div>
+                 <div className="md:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Tanggal <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.tanggal}
+                        onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 required"
+                      />
+                    </div>
                 </div>
               </div>
 
@@ -880,7 +897,7 @@ export default function AdminKecamatanDashboard() {
                         step="any"
                         value={formData[featKey] ?? 0}
                         onChange={(e) => setFormData({ ...formData, [featKey]: Number(e.target.value) })}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 required"
                       />
                     </div>
                   ))}
