@@ -8,22 +8,13 @@ import {
 import geoData from '../assets/jember.json';
 import * as XLSX from 'xlsx';
 const feature_order = [
-  "tanam_total_ha",
-  "panen_bersih_admin_ha",
-  "produksi_ton_gkg",
-
-  "curah_hujan_mm",
-  "temp_max_c",
-  "temp_min_c",
-  "temp_avg_c",
-  "humidity_pct_clean",
-  "wind_speed_kmh",
-
-  "urea_kg",
-  "npk_kg"
-
+  'luas_tanam', 'luas_panen_bersih', 'curah_hujan_mm', 'suhu_rata2_c', 'kelembaban_persen',
+  'luas_tanam_lag3', 'luas_tanam_lag4', 'curah_hujan_lag1', 'curah_hujan_lag2',
+  'jumlah_pupuk','panen_lag_1', 'panen_lag_2', 
+  'tanam_lag_1', 'tanam_lag_2','produksi_ton'
 ];
 
+// --- HELPER FUNCTIONS ---
 const titleCase = (str) => {
   if (!str) return '';
   return str
@@ -33,23 +24,25 @@ const titleCase = (str) => {
     .join(' ');
 };
 const FEATURE_LABELS = {
-  "tanggal": "Tanggal",
-  "tahun": "Tahun",
-  "bulan": "Bulan",
-
-  "tanam_total_ha": "Tanam Total (ha)",
-  "panen_bersih_admin_ha": "Panen Bersih (ha)",
-  "produksi_ton_gkg": "Produksi (Ton GKG)",
-
-  "curah_hujan_mm": "Curah Hujan (mm)",
-  "temp_max_c": "Suhu Maksimum (°C)",
-  "temp_min_c": "Suhu Minimum (°C)",
-  "temp_avg_c": "Suhu Rata-Rata (°C)",
-  "humidity_pct_clean": "Kelembapan (%)",
-  "wind_speed_kmh": "Kecepatan Angin (km/jam)",
-
-  "urea_kg": "Urea (kg)",
-  "npk_kg": "NPK (kg)"
+  'luas tanam': 'Luas Tanam (Ha)',
+  'luas_tanam': 'Luas Tanam (Ha)',
+  'luas panen bersih': 'Luas Panen Bersih (Ha)',
+  'luas_panen_bersih': 'Luas Panen Bersih (Ha)',
+  'curah_hujan_mm': 'Curah Hujan (mm)',
+  'suhu_rata2_c': 'Suhu Rata-rata (°C)',
+  'kelembaban_persen': 'Kelembaban (%)',
+  'jumlah_pupuk': 'Jumlah Pupuk (Kg)',
+  'curah_hujan_lag1': 'Curah Hujan (1 Bln Lalu)',
+  'curah_hujan_lag2': 'Curah Hujan (2 Bln Lalu)',
+  'panen_lag_1': 'Panen (1 Bln Lalu)',
+  'panen_lag_2': 'Panen (2 Bln Lalu)',
+  'tanam_lag_1': 'Tanam (1 Bln Lalu)',
+  'tanam_lag_2': 'Tanam (2 Bln Lalu)',
+  'luas_tanam_lag3': 'Luas Tanam (3 Bln Lalu)',
+  'luas_tanam_lag4': 'Luas Tanam (4 Bln Lalu)',
+  
+  'bulan_sin': 'Bulan (Sin)',
+  'bulan_cos': 'Bulan (Cos)'
 };
 
 
@@ -59,7 +52,7 @@ const getKecamatanOptions = (geoJson) => {
   if (geoJson && geoJson.features) {
     geoJson.features.forEach((f) => {
       const kode = f.properties?.kode;
-      const nama = f.properties?.NAMOBJ;
+      const nama = f.properties?.WADMKC;
       if (kode && nama && !seen.has(kode)) {
         seen.set(kode, titleCase(nama));
       }
@@ -75,45 +68,21 @@ const MONTH_NAMES = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember"
 ];
 
-const toDateInputValue = (value) => {
-  if (!value) return new Date().toISOString().slice(0, 10);
-  if (typeof value === 'object') {
-    const seconds = value.seconds ?? value._seconds;
-    if (seconds) {
-      return new Date(seconds * 1000).toISOString().slice(0, 10);
-    }
-    if (value instanceof Date && !isNaN(value)) {
-      return value.toISOString().slice(0, 10);
-    }
-    return new Date().toISOString().slice(0, 10);
-  }
-  const str = String(value).trim();
-  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-    return str.slice(0, 10);
-  }
-  const ddmmyyyy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-  if (ddmmyyyy) {
-    const [, dd, mm, yyyy] = ddmmyyyy;
-    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
-  }
-  const parsed = new Date(str);
-  if (!isNaN(parsed)) {
-    return parsed.toISOString().slice(0, 10);
-  }
-
-  return new Date().toISOString().slice(0, 10);
-};
-
 export default function AdminKecamatanDashboard() {
+  // --- STATES ---
   const [records, setRecords] = useState([]);
   const [kecamatanOptions, setKecamatanOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Filters & Pagination
   const [selectedKecamatanFilter, setSelectedKecamatanFilter] = useState('');
   const [selectedTahunFilter, setSelectedTahunFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
+
+  // Modals
   const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentDocId, setCurrentDocId] = useState(null);
@@ -133,24 +102,23 @@ export default function AdminKecamatanDashboard() {
   const [toasts, setToasts] = useState([]);
 
   const initialFormState = {
-    kode: "",
+    kode: '',
     tahun: new Date().getFullYear(),
     bulan: new Date().getMonth() + 1,
-    tanggal: new Date().toISOString().slice(0, 10),
-    
-    tanam_total_ha: 0,
-    panen_bersih_admin_ha: 0,
-    produksi_ton_gkg: 0,
-
+    'luas tanam': 0,
+    'luas panen bersih': 0,
     curah_hujan_mm: 0,
-    temp_max_c: 0,
-    temp_min_c: 0,
-    temp_avg_c: 0,
-    humidity_pct_clean: 0,
-    wind_speed_kmh: 0,
-
-    urea_kg: 0,
-    npk_kg: 0,
+    suhu_rata2_c: 0,
+    kelembaban_persen: 0,
+    luas_tanam_lag3: 0,
+    luas_tanam_lag4: 0,
+    curah_hujan_lag1: 0,
+    curah_hujan_lag2: 0,
+    jumlah_pupuk: 0,
+    panen_lag_1: 0,
+    panen_lag_2: 0,
+    tanam_lag_1: 0,
+    tanam_lag_2: 0
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -209,6 +177,7 @@ export default function AdminKecamatanDashboard() {
   const mapPayloadToDisplay = (features) => {
     const displayData = {};
     feature_order.forEach(key => {
+      // Menangani variasi underscore vs spasi untuk luas tanam dan luas panen bersih
       if (key === 'luas tanam') {
         displayData[key] = features['luas tanam'] ?? features.luas_tanam ?? 0;
       } else if (key === 'luas panen bersih') {
@@ -229,7 +198,6 @@ export default function AdminKecamatanDashboard() {
     return {
       bulan: Number(form.bulan),
       tahun: Number(form.tahun),
-      tanggal: form.tanggal,
       kode: form.kode,
       features: featuresPayload
     };
@@ -283,7 +251,6 @@ export default function AdminKecamatanDashboard() {
       kode: record.kode,
       tahun: record.tahun,
       bulan: record.bulan,
-      tanggal: toDateInputValue(record.tanggal),
       ...mappedFeatures
     });
     setFormErrors({});
@@ -295,7 +262,6 @@ export default function AdminKecamatanDashboard() {
     if (!formData.kode) errors.kode = "Kode kecamatan wajib dipilih.";
     if (!formData.tahun || isNaN(Number(formData.tahun))) errors.tahun = "Tahun wajib diisi.";
     if (!formData.bulan) errors.bulan = "Bulan wajib dipilih.";
-    if (!formData.tanggal) errors.tanggal = "Tanggal wajib dipilih.";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -382,16 +348,16 @@ export default function AdminKecamatanDashboard() {
   const handleDownloadTemplate = () => {
     const templateRow = {
       Kode: "35.09.21",
-      Kecamatan: "SUMBERSARI"
+      Kecamatan: "Sumbersari"
     };
     
+    // Mengisi kolom berdasarkan urutan feature_order secara persis
     feature_order.forEach(key => {
       templateRow[key] = 0;
     });
 
     templateRow.tahun = 2026;
     templateRow.bulan = 6;
-    templateRow.tanggal = "2026-06-15";
 
     const worksheet = XLSX.utils.json_to_sheet([templateRow]);
     const workbook = XLSX.utils.book_new();
@@ -423,7 +389,6 @@ export default function AdminKecamatanDashboard() {
           let namaInput = String(row.Kecamatan || row.kecamatan || '').trim();
           let tahunInput = row.tahun ?? row.Tahun;
           let bulanInput = row.bulan ?? row.Bulan;
-          let tanggalInput = row.tanggal ?? row.Tanggal;
           
           let matchedOption = kecamatanOptions.find(o => o.kode === kodeInput || o.nama.toLowerCase() === namaInput.toLowerCase());
 
@@ -444,7 +409,6 @@ export default function AdminKecamatanDashboard() {
             namaKecamatan: matchedOption ? matchedOption.nama : (namaInput || 'Tidak Dikenali'),
             tahun: Number(tahunInput || 2026),
             bulan: Number(bulanInput || 1),
-            tanggal: toDateInputValue(tanggalInput),
             features: featuresObj,
             isValid,
             errorMsg: !matchedOption ? "Kecamatan/Kode tidak valid" : !tahunInput ? "Tahun kosong" : null
@@ -479,7 +443,6 @@ export default function AdminKecamatanDashboard() {
         const payload = {
           bulan: row.bulan,
           tahun: row.tahun,
-          tanggal: row.tanggal,
           kode: row.kode,
           features: row.features
         };
@@ -525,7 +488,6 @@ export default function AdminKecamatanDashboard() {
 
       rowObj.tahun = item.tahun;
       rowObj.bulan = item.bulan;
-      rowObj.tanggal = toDateInputValue(item.tanggal);
       return rowObj;
     });
 
@@ -749,9 +711,6 @@ export default function AdminKecamatanDashboard() {
                           </td>
                           <td className="py-3 px-4 whitespace-nowrap">
                             <span className="font-medium text-slate-700">{MONTH_NAMES[(item.bulan || 1) - 1]} {item.tahun}</span>
-                            {item.tanggal && (
-                              <span className="block text-[11px] text-slate-400 font-mono">{toDateInputValue(item.tanggal)}</span>
-                            )}
                           </td>
                           {feature_order.slice(0, 5).map((featKey) => {
                             const val = featKey === 'luas tanam' ? (f['luas tanam'] ?? f.luas_tanam ?? 0) :
@@ -893,18 +852,6 @@ export default function AdminKecamatanDashboard() {
                       ))}
                     </select>
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Tanggal <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.tanggal || ''}
-                      onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
-                      className={`w-full bg-white border ${formErrors.tanggal ? 'border-rose-500 ring-rose-200' : 'border-slate-300'} rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500`}
-                    />
-                    {formErrors.tanggal && <p className="text-xs text-rose-500 mt-1">{formErrors.tanggal}</p>}
-                  </div>
                 </div>
               </div>
 
@@ -1007,7 +954,7 @@ export default function AdminKecamatanDashboard() {
               <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center justify-between flex-wrap gap-4">
                 <div>
                   <h4 className="text-sm font-bold text-slate-800">1. Unduh Template Excel</h4>
-                  <p className="text-xs text-slate-500">Gunakan format kolom yang sesuai dengan urutan model LSTM. Kolom tanggal gunakan format YYYY-MM-DD.</p>
+                  <p className="text-xs text-slate-500">Gunakan format kolom yang sesuai dengan urutan model LSTM.</p>
                 </div>
                 <button
                   onClick={handleDownloadTemplate}
@@ -1055,7 +1002,6 @@ export default function AdminKecamatanDashboard() {
                           <th className="p-3">Status</th>
                           <th className="p-3">Baris</th>
                           <th className="p-3">Kode / Kecamatan</th>
-                          <th className="p-3">Tanggal</th>
                           <th className="p-3">Tahun/Bulan</th>
                           <th className="p-3">Keterangan Error</th>
                         </tr>
@@ -1072,7 +1018,6 @@ export default function AdminKecamatanDashboard() {
                             </td>
                             <td className="p-3 font-mono">{row.rowNumber}</td>
                             <td className="p-3 font-semibold">{row.namaKecamatan} <span className="text-slate-400 font-mono font-normal">({row.kode})</span></td>
-                            <td className="p-3 font-mono">{row.tanggal}</td>
                             <td className="p-3 font-mono">{row.bulan}/{row.tahun}</td>
                             <td className="p-3 text-rose-600 font-medium">{row.errorMsg || '-'}</td>
                           </tr>
