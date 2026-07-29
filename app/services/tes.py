@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 
 MODEL_DIR = Path('app/models/results_v8_ensemble')
+
 class MonthlyConvBiLSTMAttention(nn.Module):
   def __init__(self, n_features: int = 11, n_districts: int = 31):
     super().__init__()
@@ -25,6 +26,8 @@ class MonthlyConvBiLSTMAttention(nn.Module):
     return self.head(
         torch.cat([context, self.embedding(district_id)], dim=1)
     ).squeeze(-1)
+
+# Load scaler dan model
 x_scaler = joblib.load(MODEL_DIR / 'monthly_deep_x_scaler_v8.pkl')
 y_scaler = joblib.load(MODEL_DIR / 'monthly_deep_y_scaler_v8.pkl')
 
@@ -36,9 +39,29 @@ model_monthly.load_state_dict(
 )
 model_monthly.eval()
 
+# --- FUNGSI UNTUK CEK FITUR ---
+def cek_fitur_input():
+  print("=== INFORMASI INPUT MODEL ===")
+  print(f"Jumlah Fitur (n_features): 11")
+  print(f"Jumlah Waktu / Time-step (data_12_bulan): 12 bulan")
+  print(f"Jumlah District ID (n_districts): 0 s.d. 30 (total 31)")
+  
+  if hasattr(x_scaler, 'feature_names_in_') and x_scaler.feature_names_in_ is not None:
+    print("\nNama-nama fitur yang terdeteksi di dalam x_scaler:")
+    for i, col in enumerate(x_scaler.feature_names_in_, 1):
+      print(f"  {i}. {col}")
+  else:
+    print("\nCatatan: x_scaler tidak menyimpan nama kolom secara spesifik (ndarray murni).")
+    print("Pastikan urutan 11 kolom data yang Anda masukkan ke `data_12_bulan` sama persis dengan saat model di-training.")
+
+# Jalankan pengecekan fitur
+cek_fitur_input()
+
+
 def predict_next_month(
     data_12_bulan: np.ndarray, district_id: int
 ) -> float:
+  # Pastikan bentuk data (12, 11) -> 12 baris (bulan) dan 11 kolom (fitur)
   data_scaled = x_scaler.transform(data_12_bulan)
   tensor_x = torch.tensor(data_scaled, dtype=torch.float32).unsqueeze(0)
   tensor_district = torch.tensor([district_id], dtype=torch.long)

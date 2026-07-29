@@ -47,7 +47,11 @@ def update_kecamatan_features(doc_id: str, data: dict) -> bool:
             "bulan": data["bulan"],
             "tahun": data["tahun"],
             "kode": data["kode"],
-            "tanggal": data["tanggal"],
+            "tanggal": (
+                data["tanggal"].isoformat()
+                if hasattr(data["tanggal"], "isoformat")
+                else data["tanggal"]
+            ),
             "features": data["features"],
             "updated_at": datetime.utcnow().isoformat(),
         }
