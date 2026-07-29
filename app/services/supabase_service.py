@@ -11,12 +11,19 @@ from app.core.config import settings
 from app.core.master_data import DESA_MAPPING
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SECRET_KEY)
 def save_kecamatan_features(data: dict) -> bool:
+    required_fields = ["bulan", "tahun", "kode", "tanggal", "features"]
+    missing = [f for f in required_fields if f not in data]
+    if missing:
+        print(f"Field wajib hilang: {missing}")
+        return False
+
     try:
         payload = {
             "bulan": data["bulan"],
             "tahun": data["tahun"],
             "kode": data["kode"],
-            "features": data["features"], 
+            "tanggal": data["tanggal"],
+            "features": data["features"],
         }
         response = supabase.table("kecamatan_features").insert(payload).execute()
         return bool(response.data)
@@ -30,6 +37,7 @@ def update_kecamatan_features(doc_id: str, data: dict) -> bool:
             "bulan": data["bulan"],
             "tahun": data["tahun"],
             "kode": data["kode"],
+            "tanggal": data["tanggal"],
             "features": data["features"],
             "updated_at": datetime.utcnow().isoformat(),
         }
