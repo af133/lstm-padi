@@ -68,6 +68,7 @@ async def get_data_all_kecamatan():
                 "kode": doc.get("kode"),
                 "tahun": int(doc.get("tahun", 0)),
                 "bulan": int(doc.get("bulan", 0)),
+                "tanggal": int(doc.get("tanggal", 0)),
                 "created_at": doc.get("created_at"),
                 "updated_at": doc.get("updated_at"),
                 "features": doc.get("features", {})
