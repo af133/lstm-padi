@@ -60,8 +60,6 @@ const getKecamatanOptions = (geoJson) => {
     geoJson.features.forEach((f) => {
       const kode = f.properties?.kode;
       const nama = f.properties?.NAMOBJ;
-      console.log("Kode: "+kode);
-      console.log("Nama Kecamatan: "+nama);
       if (kode && nama && !seen.has(kode)) {
         seen.set(kode, titleCase(nama));
       }
@@ -77,21 +75,45 @@ const MONTH_NAMES = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember"
 ];
 
+const toDateInputValue = (value) => {
+  if (!value) return new Date().toISOString().slice(0, 10);
+  if (typeof value === 'object') {
+    const seconds = value.seconds ?? value._seconds;
+    if (seconds) {
+      return new Date(seconds * 1000).toISOString().slice(0, 10);
+    }
+    if (value instanceof Date && !isNaN(value)) {
+      return value.toISOString().slice(0, 10);
+    }
+    return new Date().toISOString().slice(0, 10);
+  }
+  const str = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    return str.slice(0, 10);
+  }
+  const ddmmyyyy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (ddmmyyyy) {
+    const [, dd, mm, yyyy] = ddmmyyyy;
+    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  }
+  const parsed = new Date(str);
+  if (!isNaN(parsed)) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  return new Date().toISOString().slice(0, 10);
+};
+
 export default function AdminKecamatanDashboard() {
-  // --- STATES ---
   const [records, setRecords] = useState([]);
   const [kecamatanOptions, setKecamatanOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Filters & Pagination
   const [selectedKecamatanFilter, setSelectedKecamatanFilter] = useState('');
   const [selectedTahunFilter, setSelectedTahunFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
-
-  // Modals
   const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentDocId, setCurrentDocId] = useState(null);
@@ -114,7 +136,7 @@ export default function AdminKecamatanDashboard() {
     kode: "",
     tahun: new Date().getFullYear(),
     bulan: new Date().getMonth() + 1,
-    tanggal: new Date().getDate(),
+    tanggal: new Date().toISOString().slice(0, 10),
     
     tanam_total_ha: 0,
     panen_bersih_admin_ha: 0,
@@ -207,7 +229,7 @@ export default function AdminKecamatanDashboard() {
     return {
       bulan: Number(form.bulan),
       tahun: Number(form.tahun),
-      tanggal:form.tanggal,
+      tanggal: form.tanggal,
       kode: form.kode,
       features: featuresPayload
     };
@@ -261,6 +283,7 @@ export default function AdminKecamatanDashboard() {
       kode: record.kode,
       tahun: record.tahun,
       bulan: record.bulan,
+      tanggal: toDateInputValue(record.tanggal),
       ...mappedFeatures
     });
     setFormErrors({});
@@ -362,13 +385,13 @@ export default function AdminKecamatanDashboard() {
       Kecamatan: "SUMBERSARI"
     };
     
-    // Mengisi kolom berdasarkan urutan feature_order secara persis
     feature_order.forEach(key => {
       templateRow[key] = 0;
     });
 
     templateRow.tahun = 2026;
     templateRow.bulan = 6;
+    templateRow.tanggal = "2026-06-15";
 
     const worksheet = XLSX.utils.json_to_sheet([templateRow]);
     const workbook = XLSX.utils.book_new();
@@ -421,7 +444,7 @@ export default function AdminKecamatanDashboard() {
             namaKecamatan: matchedOption ? matchedOption.nama : (namaInput || 'Tidak Dikenali'),
             tahun: Number(tahunInput || 2026),
             bulan: Number(bulanInput || 1),
-            tanggal:(tanggalInput||"23-07-2026"),
+            tanggal: toDateInputValue(tanggalInput),
             features: featuresObj,
             isValid,
             errorMsg: !matchedOption ? "Kecamatan/Kode tidak valid" : !tahunInput ? "Tahun kosong" : null
@@ -502,7 +525,7 @@ export default function AdminKecamatanDashboard() {
 
       rowObj.tahun = item.tahun;
       rowObj.bulan = item.bulan;
-      rowObj.tanggal = item.tanggal;
+      rowObj.tanggal = toDateInputValue(item.tanggal);
       return rowObj;
     });
 
@@ -726,6 +749,9 @@ export default function AdminKecamatanDashboard() {
                           </td>
                           <td className="py-3 px-4 whitespace-nowrap">
                             <span className="font-medium text-slate-700">{MONTH_NAMES[(item.bulan || 1) - 1]} {item.tahun}</span>
+                            {item.tanggal && (
+                              <span className="block text-[11px] text-slate-400 font-mono">{toDateInputValue(item.tanggal)}</span>
+                            )}
                           </td>
                           {feature_order.slice(0, 5).map((featKey) => {
                             const val = featKey === 'luas tanam' ? (f['luas tanam'] ?? f.luas_tanam ?? 0) :
@@ -848,7 +874,7 @@ export default function AdminKecamatanDashboard() {
                       type="number"
                       value={formData.tahun}
                       onChange={(e) => setFormData({ ...formData, tahun: Number(e.target.value) })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 required"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="2026"
                     />
                   </div>
@@ -860,24 +886,25 @@ export default function AdminKecamatanDashboard() {
                     <select
                       value={formData.bulan}
                       onChange={(e) => setFormData({ ...formData, bulan: Number(e.target.value) })}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 required"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                       {MONTH_NAMES.map((name, idx) => (
                         <option key={idx + 1} value={idx + 1}>{idx + 1} - {name}</option>
                       ))}
                     </select>
                   </div>
-                 <div className="md:col-span-2">
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Tanggal <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.tanggal}
-                        onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 required"
-                      />
-                    </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Tanggal <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.tanggal || ''}
+                      onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
+                      className={`w-full bg-white border ${formErrors.tanggal ? 'border-rose-500 ring-rose-200' : 'border-slate-300'} rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500`}
+                    />
+                    {formErrors.tanggal && <p className="text-xs text-rose-500 mt-1">{formErrors.tanggal}</p>}
+                  </div>
                 </div>
               </div>
 
@@ -897,7 +924,7 @@ export default function AdminKecamatanDashboard() {
                         step="any"
                         value={formData[featKey] ?? 0}
                         onChange={(e) => setFormData({ ...formData, [featKey]: Number(e.target.value) })}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 required"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
                   ))}
@@ -980,7 +1007,7 @@ export default function AdminKecamatanDashboard() {
               <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center justify-between flex-wrap gap-4">
                 <div>
                   <h4 className="text-sm font-bold text-slate-800">1. Unduh Template Excel</h4>
-                  <p className="text-xs text-slate-500">Gunakan format kolom yang sesuai dengan urutan model LSTM.</p>
+                  <p className="text-xs text-slate-500">Gunakan format kolom yang sesuai dengan urutan model LSTM. Kolom tanggal gunakan format YYYY-MM-DD.</p>
                 </div>
                 <button
                   onClick={handleDownloadTemplate}
@@ -1028,6 +1055,7 @@ export default function AdminKecamatanDashboard() {
                           <th className="p-3">Status</th>
                           <th className="p-3">Baris</th>
                           <th className="p-3">Kode / Kecamatan</th>
+                          <th className="p-3">Tanggal</th>
                           <th className="p-3">Tahun/Bulan</th>
                           <th className="p-3">Keterangan Error</th>
                         </tr>
@@ -1044,6 +1072,7 @@ export default function AdminKecamatanDashboard() {
                             </td>
                             <td className="p-3 font-mono">{row.rowNumber}</td>
                             <td className="p-3 font-semibold">{row.namaKecamatan} <span className="text-slate-400 font-mono font-normal">({row.kode})</span></td>
+                            <td className="p-3 font-mono">{row.tanggal}</td>
                             <td className="p-3 font-mono">{row.bulan}/{row.tahun}</td>
                             <td className="p-3 text-rose-600 font-medium">{row.errorMsg || '-'}</td>
                           </tr>

@@ -14,7 +14,7 @@ const HomePage = () => {
         const [ resPred, resFeat,resWeather] = await Promise.all([
           
           fetch('https://lstm-padi.onrender.com/predict-all-kecamatan').then(r => r.json()),
-          fetch('https://lstm-padi.onrender.com/get-features-by-kecamatan').then(r => r.json()),
+          fetch('https://lstm-padi.onrender.com/get-features-structured').then(r => r.json()),
           fetch('https://lstm-padi.onrender.com/get-cuaca-jember').then(r => r.json()),
         ]);
         setData({ geo: geoData, pred: resPred, feat: resFeat, weather: resWeather });

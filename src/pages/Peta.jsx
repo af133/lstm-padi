@@ -62,7 +62,7 @@ export default function PetaPrediksiPanen() {
             if (!r.ok) throw new Error('Gagal memuat data prediksi');
             return r.json();
           }), 
-          fetch('https://lstm-padi.onrender.com/get-features-by-kecamatan').then(r => {
+          fetch('https://lstm-padi.onrender.com/get-features-structured').then(r => {
             if (!r.ok) throw new Error('Gagal memuat data fitur');
             return r.json();
           }),
