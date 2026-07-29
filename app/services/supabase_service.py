@@ -11,54 +11,30 @@ from app.core.config import settings
 from app.core.master_data import DESA_MAPPING
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SECRET_KEY)
 def save_kecamatan_features(data: dict) -> bool:
-    print("DATA YANG DITERIMA:", data)
-    required_fields = ["bulan", "tahun", "kode", "tanggal", "features"]
-    missing = [f for f in required_fields if f not in data]
-    if missing:
-        raise ValueError(f"Field wajib hilang: {missing}")
-
     try:
         payload = {
             "bulan": data["bulan"],
             "tahun": data["tahun"],
             "kode": data["kode"],
-            "tanggal": (
-                data["tanggal"].isoformat()
-                if hasattr(data["tanggal"], "isoformat")
-                else data["tanggal"]
-            ),
-            "features": data["features"],
+            "features": data["features"], 
         }
         response = supabase.table("kecamatan_features").insert(payload).execute()
-        if not response.data:
-            raise RuntimeError(
-                "Insert ke Supabase tidak mengembalikan data. "
-                "Cek RLS policy / constraint / kolom pada tabel kecamatan_features."
-            )
-        return True
+        return bool(response.data)
     except Exception as e:
         print(f"Error Supabase Insert: {e}")
-        raise 
-
-
+        return False
 def update_kecamatan_features(doc_id: str, data: dict) -> bool:
+    """Update data kecamatan_features berdasarkan Primary Key ID di Supabase."""
     try:
         payload = {
             "bulan": data["bulan"],
             "tahun": data["tahun"],
             "kode": data["kode"],
-            "tanggal": (
-                data["tanggal"].isoformat()
-                if hasattr(data["tanggal"], "isoformat")
-                else data["tanggal"]
-            ),
             "features": data["features"],
             "updated_at": datetime.utcnow().isoformat(),
         }
         response = supabase.table("kecamatan_features").update(payload).eq("id", doc_id).execute()
-        if not response.data:
-            raise RuntimeError(f"Update gagal atau doc_id '{doc_id}' tidak ditemukan.")
-        return True
+        return bool(response.data)
     except Exception as e:
         print(f"Error Supabase Update: {e}")
         return False
@@ -167,7 +143,7 @@ def sync_bmkg_data():
                 doc_tahun = int(doc.get("tahun", 0))
 
                 if doc_kode == kec_code and doc_bulan == current_month and doc_tahun == current_year:
-                    doc_id = doc.get("id") 
+                    doc_id = doc.get("id")  # Ambil ID primary key Supabase
                     new_features = doc.get("features", {})
                     
                     new_features["suhu_rata2_c"] = avg_temp
