@@ -12,6 +12,7 @@ from app.core.master_data import DESA_MAPPING
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SECRET_KEY)
 def save_kecamatan_features(data: dict) -> bool:
     print("DATA YANG DITERIMA:", data)
+    required_fields = ["bulan", "tahun", "kode", "tanggal", "features"]
     missing = [f for f in required_fields if f not in data]
     if missing:
         raise ValueError(f"Field wajib hilang: {missing}")
