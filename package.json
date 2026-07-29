@@ -14,6 +14,8 @@
     "framer-motion": "^12.42.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.25.0",
+    "proj4": "^2.21.0",
+    "proj4leaflet": "^1.0.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-icons": "^5.7.0",
