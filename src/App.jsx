@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Navbar from './components/Navbar/Navbar';
 import TentangKami from './pages/TentangKami';
 import HomePage from './pages/HomePage';
@@ -8,29 +8,12 @@ import AdminKecamatanDashboard from './pages/AdminKecamatanDashboard';
 
 export default function App() {
   const [activePage, setActivePage] = useState('Beranda');
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem('isLoggedIn') === 'true';
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Handler saat login berhasil
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
-    localStorage.setItem('isLoggedIn', 'true');
-    setActivePage('Dashboard');
-  };
-
-  // Handler saat logout
   const handleLogout = () => {
     setIsLoggedIn(false);
-    localStorage.removeItem('isLoggedIn');
     setActivePage('Beranda');
   };
-
-  useEffect(() => {
-    if (!isLoggedIn && activePage === 'Dashboard') {
-      setActivePage('Beranda');
-    }
-  }, [isLoggedIn, activePage]);
 
   return (
     <div>
@@ -39,7 +22,10 @@ export default function App() {
         setActivePage={setActivePage} 
         isLoggedIn={isLoggedIn}
         onLogout={handleLogout}
-        onLoginSuccess={handleLoginSuccess}
+        onLoginSuccess={() => {
+          setIsLoggedIn(true);
+          setActivePage('Dashboard');
+        }}
       />
       <main className="pt-16">
         {activePage === 'Beranda' && <HomePage />}
