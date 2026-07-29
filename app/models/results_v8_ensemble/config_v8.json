@@ -1,0 +1,27 @@
+{
+  "version": "V8 validation-gated hybrid ensemble",
+  "data_scope": "Only supplied Dinas/clean datasets; no new Dinas variables added.",
+  "annual_evaluation_years": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "monthly_operational_test": "2024-01-01 to 2024-12-01, rolling one-step-ahead",
+  "annual_final_component_weights": {
+    "xgb_harvest": 0.05,
+    "xgb_yield": 0.1
+  },
+  "annual_prior_component_WAPE_pct": 3.4138447206181954,
+  "monthly_candidate_weights": {
+    "pred_xgb_produksi_ton_gkg": 0.8074601494490409,
+    "pred_agronomic_produksi_ton_gkg": 0.14534714374485994,
+    "pred_deep_produksi_ton_gkg": 1.011113472353414e-17,
+    "lag12_produksi_ton_gkg": 0.04719270680609916
+  },
+  "monthly_scenario_2026_saved": false
+}

@@ -18,7 +18,6 @@ def encode_bulan(bulan):
     return sin_bulan, cos_bulan
 
 def extract_features(list_3_months_data):
-    """Mengubah list 3 bulan data ke matrix numpy (3, 16)"""
     feature_order = [
         'luas tanam', 'luas panen bersih', 'curah_hujan_mm', 'suhu_rata2_c', 'kelembaban_persen',
         'luas_tanam_lag3', 'luas_tanam_lag4', 'curah_hujan_lag1', 'curah_hujan_lag2',

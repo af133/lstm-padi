@@ -1,0 +1,16 @@
+{
+  "candidate_columns": [
+    "pred_xgb_produksi_ton_gkg",
+    "pred_agronomic_produksi_ton_gkg",
+    "pred_deep_produksi_ton_gkg",
+    "lag12_produksi_ton_gkg"
+  ],
+  "weights_selected_on_prior_2023_rolling_validation": [
+    0.8074601494490409,
+    0.14534714374485994,
+    1.011113472353414e-17,
+    0.04719270680609916
+  ],
+  "development_WAPE_pct": 19.223863433645036,
+  "note": "Weights are fixed before evaluating 2024. This is an operational one-step-ahead forecast, not a 12-month recursive forecast."
+}

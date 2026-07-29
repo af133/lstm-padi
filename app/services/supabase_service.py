@@ -24,7 +24,7 @@ def save_kecamatan_features(data: dict) -> bool:
         print(f"Error Supabase Insert: {e}")
         return False
 def update_kecamatan_features(doc_id: str, data: dict) -> bool:
-    """Update data kecamatan_features berdasarkan Primary Key ID di Supabase."""
+    """Update data kecamatan_features berdasarkan Primary Key ID di Supabase."""    
     try:
         payload = {
             "bulan": data["bulan"],
@@ -143,7 +143,7 @@ def sync_bmkg_data():
                 doc_tahun = int(doc.get("tahun", 0))
 
                 if doc_kode == kec_code and doc_bulan == current_month and doc_tahun == current_year:
-                    doc_id = doc.get("id")  # Ambil ID primary key Supabase
+                    doc_id = doc.get("id") 
                     new_features = doc.get("features", {})
                     
                     new_features["suhu_rata2_c"] = avg_temp
