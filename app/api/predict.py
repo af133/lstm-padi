@@ -1,9 +1,9 @@
 import httpx
 import numpy as np
 from fastapi import APIRouter, HTTPException
-from app.services.predict_service import extract_features, predict_batch
 from app.core.config import settings
 from app.services.supabase_service import get_cuaca_jember
+from app.services.predict_service import extract_features, predict_batch, get_district_id, WINDOW_SIZE
 
 router = APIRouter()
 
@@ -28,12 +28,13 @@ def get_status_suhu(temp: float) -> str:
     if 33 <= temp < 35: return "Waspada"
     return "Aman"
 
+
 @router.get("/predict-all-kecamatan")
 async def predict_all():
     async with httpx.AsyncClient() as client:
         base_url = settings.PREDICTION_API_URL.rstrip('/')
         try:
-            response = await client.get(f"{base_url}/get-features-by-kecamatan")
+            response = await client.get(f"{base_url}/get-features-structured")
             if response.status_code != 200:
                 raise HTTPException(status_code=500, detail="Gagal mengambil data dari internal service")
             all_data = response.json()
@@ -41,50 +42,76 @@ async def predict_all():
             raise HTTPException(status_code=500, detail=f"HTTP Request Error: {str(e)}")
 
     cuaca_map = get_cuaca_jember()
-    
+
     batch_inputs = []
+    batch_district_ids = []
     tasks_meta = []
     results = {}
+
     for kecamatan_id, data_tahun in all_data.items():
         results[kecamatan_id] = {}
+        try:
+            district_id = get_district_id(kecamatan_id)
+        except ValueError as e:
+            results[kecamatan_id]["_info"] = f"Tidak ada mapping district_id: {e}"
+            continue
+
         flat_data = []
         for tahun in sorted(data_tahun.keys(), key=int):
             for bulan in sorted(data_tahun[tahun].keys(), key=int):
-                items = data_tahun[tahun][bulan]
+                date_dict = data_tahun[tahun][bulan] 
+                if not date_dict or not isinstance(date_dict, dict):
+                    continue
+
+                latest_date = sorted(date_dict.keys())[-1]
+                items = date_dict[latest_date]
+
                 if items and isinstance(items, list):
                     item = items[-1].copy()
                     item['bulan'] = int(bulan)
                     item['tahun'] = int(tahun)
                     flat_data.append(item)
-        
+
         if not flat_data:
+            results[kecamatan_id]["_info"] = "Tidak ada data historis sama sekali"
             continue
 
-        prod_values = [float(item.get('produksi_ton', 0.0)) for item in flat_data]
+        if len(flat_data) < WINDOW_SIZE:
+            results[kecamatan_id]["_info"] = (
+                f"Data historis kurang: hanya {len(flat_data)} bulan, "
+                f"butuh minimal {WINDOW_SIZE} bulan untuk prediksi"
+            )
+            # tetap lanjut, siapa tau nanti ada data historis parsial yg berguna
+            # tapi TIDAK akan menghasilkan prediksi apapun karena syarat window belum cukup
+
+        prod_values = [float(item.get('produksi_ton_gkg', 0.0)) for item in flat_data]
         mean_p = float(np.mean(prod_values)) if prod_values else 0.0
         std_p = float(np.std(prod_values)) if prod_values else 0.0
-        for i in range(3, len(flat_data)):
-            input_seq = flat_data[i-3 : i]
+
+        for i in range(WINDOW_SIZE, len(flat_data)):
+            input_seq = flat_data[i - WINDOW_SIZE: i]
             scaled_matrix = extract_features(input_seq)
             batch_inputs.append(scaled_matrix)
+            batch_district_ids.append(district_id)
             tasks_meta.append({
                 "type": "history",
                 "kecamatan_id": kecamatan_id,
                 "tahun": str(flat_data[i]['tahun']),
                 "bulan": str(flat_data[i]['bulan']),
-                "aktual": float(flat_data[i].get('produksi_ton', 0.0))
+                "aktual": float(flat_data[i].get('produksi_ton_gkg', 0.0))
             })
-        if len(flat_data) >= 3:
-            input_seq = flat_data[-3:]
+
+        if len(flat_data) >= WINDOW_SIZE:
+            input_seq = flat_data[-WINDOW_SIZE:]
             scaled_matrix = extract_features(input_seq)
             batch_inputs.append(scaled_matrix)
-            
+            batch_district_ids.append(district_id)
+
             last_item = flat_data[-1]
             last_m = int(last_item['bulan'])
             last_y = int(last_item['tahun'])
             next_m = (last_m % 12) + 1
             next_y = last_y + (1 if last_m == 12 else 0)
-
             tasks_meta.append({
                 "type": "future",
                 "kecamatan_id": kecamatan_id,
@@ -93,15 +120,15 @@ async def predict_all():
                 "mean_p": mean_p,
                 "std_p": std_p
             })
-    predictions = predict_batch(batch_inputs)
+
+    predictions = predict_batch(batch_inputs, batch_district_ids)
+
     for meta, pred_val in zip(tasks_meta, predictions):
         kec_id = meta["kecamatan_id"]
         y_str = meta["tahun"]
         m_str = meta["bulan"]
-
         if y_str not in results[kec_id]:
             results[kec_id][y_str] = {}
-
         if meta["type"] == "history":
             results[kec_id][y_str][m_str] = {
                 "prediksi": round(float(pred_val), 2),
