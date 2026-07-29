@@ -24,9 +24,7 @@ const titleCase = (str) => {
     .join(' ');
 };
 const FEATURE_LABELS = {
-  'luas tanam': 'Luas Tanam (Ha)',
   'luas_tanam': 'Luas Tanam (Ha)',
-  'luas panen bersih': 'Luas Panen Bersih (Ha)',
   'luas_panen_bersih': 'Luas Panen Bersih (Ha)',
   'curah_hujan_mm': 'Curah Hujan (mm)',
   'suhu_rata2_c': 'Suhu Rata-rata (°C)',

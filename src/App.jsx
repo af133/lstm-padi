@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar/Navbar';
 import TentangKami from './pages/TentangKami';
 import HomePage from './pages/HomePage';
@@ -8,10 +8,15 @@ import AdminKecamatanDashboard from './pages/AdminKecamatanDashboard';
 
 export default function App() {
   const [activePage, setActivePage] = useState('Beranda');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('isLoggedIn') === 'true';
+  });
+  useEffect(() => {
+    localStorage.setItem('isLoggedIn', isLoggedIn);
+  }, [isLoggedIn]);
   const handleLogout = () => {
     setIsLoggedIn(false);
+    localStorage.removeItem('isLoggedIn'); 
     setActivePage('Beranda');
   };
 
